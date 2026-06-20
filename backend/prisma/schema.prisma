@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model usuarios {
+  id           Int      @id @default(autoincrement())
+  nombre       String   @db.VarChar(150)
+  email        String   @unique @db.VarChar(200)
+  password     String   @db.VarChar(255)
+  rol          Rol
+  activo       Boolean  @default(true)
+  sucursal_id  Int?
+  proveedor_id Int?
+  creado_en    DateTime @default(now())
+
+  sucursal  sucursales?  @relation(fields: [sucursal_id], references: [id])
+  proveedor proveedores? @relation(fields: [proveedor_id], references: [id])
+}
+
+model sucursales {
+  id     Int     @id @default(autoincrement())
+  nombre String  @db.VarChar(150)
+  activo Boolean @default(true)
+
+  usuarios          usuarios[]
+  empleados         empleados[]
+  asistencias       asistencias[]
+  documentos_unidad documentos_unidad[]
+}
+
+model empleados {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @db.VarChar(150)
+  lector_uid  String   @db.VarChar(100)
+  sucursal_id Int
+  activo      Boolean  @default(true)
+  creado_en   DateTime @default(now())
+
+  sucursal        sucursales                 @relation(fields: [sucursal_id], references: [id])
+  asistencias     asistencias[]
+  justificaciones justificaciones[]
+  correcciones    correcciones_asistencia[]
+
+  // El lector_uid es único POR unidad, no globalmente: el checador de cada
+  // cocina puede asignar el mismo número a empleados distintos. El webhook
+  // resuelve al empleado por (lector_uid, sucursal_id).
+  @@unique([lector_uid, sucursal_id])
+}
+
+model asistencias {
+  id          Int            @id @default(autoincrement())
+  empleado_id Int
+  sucursal_id Int
+  tipo        TipoAsistencia
+  timestamp   DateTime       @default(now())
+
+  empleado empleados  @relation(fields: [empleado_id], references: [id])
+  sucursal sucursales @relation(fields: [sucursal_id], references: [id])
+}
+
+model justificaciones {
+  id          Int               @id @default(autoincrement())
+  empleado_id Int
+  fecha       String            @db.VarChar(10) // 'YYYY-MM-DD' — sin zona horaria
+  tipo        TipoJustificacion
+  nota        String?           @db.VarChar(300)
+  creado_por  Int
+  creado_en   DateTime          @default(now())
+
+  empleado empleados @relation(fields: [empleado_id], references: [id])
+
+  @@unique([empleado_id, fecha])
+}
+
+// Capa de corrección del administrador. NO altera las marcas crudas del
+// checador (tabla `asistencias`); las sobreescribe a nivel de día para la
+// vista. entrada/salida en 'HH:MM'; null = el admin dejó el campo vacío.
+model correcciones_asistencia {
+  id            Int      @id @default(autoincrement())
+  empleado_id   Int
+  fecha         String   @db.VarChar(10) // 'YYYY-MM-DD'
+  entrada       String?  @db.VarChar(5)  // 'HH:MM'
+  salida        String?  @db.VarChar(5)  // 'HH:MM'
+  corregido_por Int
+  creado_en     DateTime @default(now())
+
+  empleado empleados @relation(fields: [empleado_id], references: [id])
+
+  @@unique([empleado_id, fecha])
+}
+
+model proveedores {
+  id        Int      @id @default(autoincrement())
+  nombre    String   @db.VarChar(150)
+  rfc       String?  @db.VarChar(20)
+  activo    Boolean  @default(true)
+  creado_en DateTime @default(now())
+
+  usuarios             usuarios[]
+  documentos_proveedor documentos_proveedor[]
+}
+
+model documentos_proveedor {
+  id              Int              @id @default(autoincrement())
+  proveedor_id    Int
+  nombre_original String           @db.VarChar(255)
+  ruta_archivo    String           @db.VarChar(500)
+  tipo_mime       String           @db.VarChar(100)
+  subido_por      Int
+  estado          EstadoDocumento  @default(pendiente)
+  creado_en       DateTime         @default(now())
+
+  proveedor proveedores @relation(fields: [proveedor_id], references: [id])
+}
+
+model documentos_unidad {
+  id              Int             @id @default(autoincrement())
+  sucursal_id     Int
+  nombre_original String          @db.VarChar(255)
+  ruta_archivo    String          @db.VarChar(500)
+  tipo_mime       String          @db.VarChar(100)
+  subido_por      Int
+  estado          EstadoDocumento @default(pendiente)
+  creado_en       DateTime        @default(now())
+
+  sucursal sucursales @relation(fields: [sucursal_id], references: [id])
+}
+
+model ventanas_carga {
+  id      Int       @id @default(autoincrement())
+  modulo  Modulo    @unique
+  abierta Boolean   @default(false)
+  desde   DateTime?
+  hasta   DateTime?
+}
+
+enum Rol {
+  administrador
+  gerente
+  proveedor
+}
+
+enum TipoAsistencia {
+  entrada
+  salida
+}
+
+enum TipoJustificacion {
+  vacaciones
+  incapacidad
+  permiso
+  falta_justificada
+}
+
+enum Modulo {
+  proveedores
+  unidades
+}
+
+enum EstadoDocumento {
+  pendiente
+  aprobado
+  desaprobado
+}

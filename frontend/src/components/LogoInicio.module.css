@@ -1,0 +1,31 @@
+/* Botón-marca: el logo actúa como enlace al menú principal.
+ * Discreto por diseño — no parece un botón, solo da microfeedback al
+ * interactuar y un anillo de foco naranja accesible. */
+.boton {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radio-sm);
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.boton:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+.boton:active {
+  transform: translateY(0);
+}
+
+.boton:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(232, 98, 26, 0.18);
+}
+
+.boton img {
+  display: block;
+}

@@ -1,0 +1,82 @@
+/* Pie de página — "línea de cierre de servicio".
+   Se ancla abajo vía margin-top:auto (la .pagina es flex column). */
+.footer {
+  margin-top: auto;
+  position: relative;
+  background: var(--color-blanco);
+  border-top: 1px solid var(--color-gris);
+}
+
+.interior {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 28px;
+  flex-wrap: wrap;
+}
+
+/* ── Marca ── */
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logoImg {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+
+.marcaTexto {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+}
+
+.marcaNombre {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-texto);
+}
+
+.marcaTag {
+  font-size: 11.5px;
+  color: var(--color-gris-medio);
+}
+
+/* ── Metadatos (derecha) ── */
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.copyright {
+  font-size: 12px;
+  color: var(--color-gris-medio);
+  font-variant-numeric: tabular-nums;
+}
+
+.separador {
+  color: var(--color-gris);
+  margin: 0 2px;
+}
+
+.version {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+}
+
+@media (max-width: 680px) {
+  .interior {
+    padding: 18px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

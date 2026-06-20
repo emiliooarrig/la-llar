@@ -1,0 +1,15 @@
+node_modules/
+.env
+dist/
+checador/cola_pendiente.db
+checador/.venv/
+__pycache__/
+uploads/*
+!uploads/.gitkeep
+*.log
+.DS_Store
+.env.example
+CLAUDE.md
+.claude
+.agents
+claude --resume d8369f54-bbe9-4ff1-92b5-72d380855d9f

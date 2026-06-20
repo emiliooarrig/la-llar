@@ -1,0 +1,370 @@
+/* ── Shell ──────────────────────────────────────────────── */
+.pagina {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-blanco-hueso);
+}
+
+/* ── Header (compartido con los demás módulos) ─────────── */
+.header {
+  background: var(--color-blanco);
+  border-bottom: 1px solid var(--color-gris);
+  padding: 0 32px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--sombra-sm);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.marca { display: flex; align-items: center; gap: 12px; }
+
+.logoSmall {
+  height: 36px;
+  width: auto;
+  display: block;
+}
+
+.appNombre { font-size: 15px; font-weight: 600; color: var(--color-texto); }
+
+.usuario { display: flex; align-items: center; gap: 16px; }
+
+.infoUsuario { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+
+.nombreUsuario { font-size: 14px; font-weight: 600; color: var(--color-texto); }
+
+.rolBadge {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-naranja);
+  background-color: rgba(232, 98, 26, 0.10);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.botonSalir {
+  padding: 8px 18px;
+  background: none;
+  border: 1.5px solid var(--color-gris);
+  border-radius: var(--radio-sm);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-texto-suave);
+  transition: border-color 0.15s, color 0.15s;
+}
+.botonSalir:hover { border-color: var(--color-naranja); color: var(--color-naranja); }
+
+/* ── Layout ─────────────────────────────────────────────── */
+.contenido { max-width: 1080px; margin: 0 auto; padding: 40px 32px; }
+
+.paginaHeader { margin-bottom: 24px; }
+.tituloPagina { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: var(--color-texto); margin-bottom: 4px; }
+.subtituloPagina { font-size: 14px; color: var(--color-texto-suave); }
+
+/* ── Banda resumen (lámpara de calor) ──────────────────── */
+.banda {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 18px 22px;
+  border: 1.5px solid var(--color-gris);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-sm);
+  margin-bottom: 24px;
+}
+.bandaAlerta {
+  border-left: 4px solid #E8A317;
+  background: linear-gradient(90deg, rgba(232, 163, 23, 0.07), var(--color-blanco) 60%);
+}
+.bandaCalma {
+  border-left: 4px solid var(--color-exito);
+  background: var(--color-blanco);
+}
+
+.bandaCifra { display: flex; align-items: baseline; gap: 10px; }
+.bandaNumero {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-texto);
+  line-height: 1;
+}
+.bandaAlerta .bandaNumero { color: #9A6700; }
+.bandaCalma .bandaNumero { color: var(--color-exito); }
+.bandaTexto { font-size: 13.5px; font-weight: 500; color: var(--color-texto-suave); }
+
+/* ── Filtros (chips) ───────────────────────────────────── */
+.filtros { display: flex; gap: 8px; flex-wrap: wrap; }
+.chipFiltro {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  background: var(--color-blanco);
+  border: 1.5px solid var(--color-gris);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+  transition: border-color 0.15s, color 0.15s, background-color 0.15s;
+}
+.chipFiltro:hover { border-color: var(--color-naranja); color: var(--color-naranja); }
+.chipActivo {
+  border-color: var(--color-naranja);
+  color: var(--color-naranja-oscuro);
+  background: rgba(232, 98, 26, 0.08);
+}
+.chipConteo {
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: var(--color-gris-claro);
+  color: var(--color-texto-suave);
+}
+.chipActivo .chipConteo { background: var(--color-naranja); color: var(--color-blanco); }
+
+/* ── Cola de comandas ──────────────────────────────────── */
+.cola { display: flex; flex-direction: column; gap: 12px; }
+
+.ticket {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  background: var(--color-blanco);
+  border: 1.5px solid var(--color-gris);
+  border-left: 4px solid #E8A317;
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-sm);
+  transition: box-shadow 0.15s, transform 0.15s, opacity 0.2s;
+}
+.ticket:hover { box-shadow: var(--sombra-md); transform: translateY(-1px); }
+.ticketProcesando { opacity: 0.5; pointer-events: none; }
+
+.ticketIcono {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radio-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tonoOliva { background: rgba(46, 125, 50, 0.10); color: var(--color-exito); }
+.tonoNaranja { background: rgba(232, 98, 26, 0.12); color: var(--color-naranja-oscuro); }
+
+.ticketCuerpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+
+.ticketLinea1 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.badgeTipo {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: var(--radio-sm);
+}
+.badgeProveedor { background: rgba(46, 125, 50, 0.12); color: var(--color-exito); }
+.badgeUnidad { background: rgba(232, 98, 26, 0.14); color: var(--color-naranja-oscuro); }
+.ticketOrigen { font-size: 15px; font-weight: 600; color: var(--color-texto); }
+
+.ticketArchivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  max-width: 100%;
+  cursor: pointer;
+}
+.ticketArchivoNombre {
+  font-size: 13px;
+  color: var(--color-texto-suave);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: text-decoration-color 0.15s, color 0.15s;
+}
+.ticketArchivo:hover .ticketArchivoNombre { color: var(--color-naranja); text-decoration-color: var(--color-naranja); }
+
+.fileBadge {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 2px 5px;
+  border-radius: 4px;
+  color: var(--color-blanco);
+}
+.filePDF { background: #D93025; }
+.fileXLS { background: #2E7D32; }
+.fileOtro { background: var(--color-gris-medio); }
+
+.ticketMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--color-gris-medio);
+  font-variant-numeric: tabular-nums;
+}
+.espera {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: var(--color-gris-claro);
+  color: var(--color-texto-suave);
+  font-weight: 600;
+}
+.esperaAlta { background: rgba(232, 163, 23, 0.16); color: #9A6700; }
+
+/* ── Acciones del ticket ───────────────────────────────── */
+.ticketAcciones { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.btnDescargar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: 1.5px solid var(--color-gris);
+  border-radius: var(--radio-sm);
+  color: var(--color-texto-suave);
+  transition: border-color 0.15s, color 0.15s;
+}
+.btnDescargar:hover { border-color: var(--color-naranja); color: var(--color-naranja); }
+
+.btnRechazar, .btnAprobar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 15px;
+  border-radius: var(--radio-sm);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.btnRechazar {
+  background: none;
+  border: 1.5px solid var(--color-gris);
+  color: var(--color-texto-suave);
+}
+.btnRechazar:hover:not(:disabled) {
+  border-color: var(--color-error);
+  color: var(--color-error);
+  background: rgba(217, 48, 37, 0.06);
+}
+.btnAprobar {
+  background: var(--color-exito);
+  border: 1.5px solid var(--color-exito);
+  color: var(--color-blanco);
+}
+.btnAprobar:hover:not(:disabled) {
+  background: #256628;
+  box-shadow: var(--sombra-md);
+}
+.btnRechazar:disabled, .btnAprobar:disabled, .btnDescargar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Estado vacío ──────────────────────────────────────── */
+.vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 56px 24px;
+  background: var(--color-blanco);
+  border: 1.5px solid var(--color-gris);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-sm);
+}
+.vacioCheck {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(46, 125, 50, 0.10);
+  color: var(--color-exito);
+  margin-bottom: 6px;
+}
+.vacioTitulo { font-size: 16px; font-weight: 700; color: var(--color-texto); }
+.vacioSub { font-size: 13.5px; color: var(--color-texto-suave); max-width: 380px; }
+
+/* ── Error ─────────────────────────────────────────────── */
+.errorBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 18px 22px;
+  background: var(--color-blanco);
+  border: 1.5px solid var(--color-gris);
+  border-left: 4px solid var(--color-error);
+  border-radius: var(--radio);
+  font-size: 14px;
+  color: var(--color-texto);
+  box-shadow: var(--sombra-sm);
+}
+.btnReintentar {
+  padding: 8px 16px;
+  background: var(--color-naranja);
+  color: var(--color-blanco);
+  border: none;
+  border-radius: var(--radio-sm);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 0.15s;
+}
+.btnReintentar:hover { background: var(--color-naranja-oscuro); }
+
+/* ── Skeleton ──────────────────────────────────────────── */
+.skel {
+  height: 78px;
+  border-left-color: var(--color-gris);
+  position: relative;
+  overflow: hidden;
+  pointer-events: none;
+}
+.skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 1.3s infinite;
+}
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+
+/* ── Responsive ────────────────────────────────────────── */
+@media (max-width: 680px) {
+  .contenido { padding: 24px 16px; }
+  .header { padding: 0 16px; }
+  .ticket { flex-wrap: wrap; }
+  .ticketAcciones { width: 100%; justify-content: flex-end; }
+  .banda { flex-direction: column; align-items: flex-start; }
+}

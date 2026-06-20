@@ -1,0 +1,177 @@
+.pagina {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-blanco-hueso);
+  padding: 24px;
+}
+
+.panel {
+  background: var(--color-blanco);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-lg);
+  padding: 48px 40px 40px;
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid var(--color-gris);
+}
+
+.encabezado {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.logoImg {
+  height: 84px;
+  width: auto;
+  display: block;
+}
+
+.subtitulo {
+  color: var(--color-texto-suave);
+  font-size: 14px;
+  font-weight: 400;
+  margin-top: 4px;
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.etiqueta {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-texto);
+}
+
+.input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--color-gris);
+  border-radius: var(--radio-sm);
+  font-size: 15px;
+  color: var(--color-texto);
+  background: var(--color-blanco);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--color-gris-medio);
+}
+
+.input:focus {
+  border-color: var(--color-naranja);
+  box-shadow: 0 0 0 3px rgba(232, 98, 26, 0.12);
+}
+
+.input:disabled {
+  background: var(--color-gris-claro);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.inputWrapper {
+  position: relative;
+}
+
+.inputWrapper .input {
+  padding-right: 44px;
+}
+
+.togglePassword {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 4px;
+  color: var(--color-gris-medio);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+}
+
+.togglePassword:hover {
+  color: var(--color-naranja);
+}
+
+.togglePassword svg {
+  width: 18px;
+  height: 18px;
+}
+
+.boton {
+  width: 100%;
+  padding: 13px;
+  background-color: var(--color-naranja);
+  color: var(--color-blanco);
+  border: none;
+  border-radius: var(--radio-sm);
+  font-size: 15px;
+  font-weight: 600;
+  margin-top: 4px;
+  transition: background-color 0.15s, box-shadow 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+}
+
+.boton:hover:not(:disabled) {
+  background-color: var(--color-naranja-oscuro);
+  box-shadow: var(--sombra-sm);
+}
+
+.boton:active:not(:disabled) {
+  background-color: var(--color-naranja-oscuro);
+}
+
+.boton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid rgba(255,255,255,0.4);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: girar 0.7s linear infinite;
+}
+
+@keyframes girar {
+  to { transform: rotate(360deg); }
+}
+
+.nota {
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-gris-medio);
+  margin-top: 24px;
+}
+
+@media (max-width: 480px) {
+  .panel {
+    padding: 36px 24px 32px;
+  }
+}
