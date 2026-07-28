@@ -17,11 +17,11 @@ const ventanasRoutes = require('./routes/ventanas');
 const webhookRoutes = require('./routes/webhook');
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT;
 const prisma = new PrismaClient();
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL,
   credentials: true,
 }));
 
