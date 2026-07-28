@@ -73,7 +73,21 @@ function formatFecha(iso) {
   });
 }
 
-const FORM_VACIO = { nombre: '', lector_uid: '', sucursal_id: '' };
+// La fecha de nacimiento es un campo solo-fecha (@db.Date). Formateamos a
+// partir de la porción 'YYYY-MM-DD' del ISO para evitar el corrimiento de
+// día que provocaría interpretar la medianoche UTC en la zona local.
+function formatFechaSolo(iso) {
+  if (!iso) return '—';
+  const [y, m, d] = iso.slice(0, 10).split('-');
+  return `${d}/${m}/${y}`;
+}
+
+// Valor 'YYYY-MM-DD' para el <input type="date">.
+function fechaInput(iso) {
+  return iso ? iso.slice(0, 10) : '';
+}
+
+const FORM_VACIO = { nombre: '', lector_uid: '', sucursal_id: '', fecha_nacimiento: '', rfc: '', curp: '' };
 
 const ETIQUETA_ROL = { administrador: 'Administrador', gerente: 'Gerente', proveedor: 'Proveedor' };
 
@@ -131,7 +145,9 @@ export default function Empleados() {
       const coincideTexto =
         q === '' ||
         emp.nombre.toLowerCase().includes(q) ||
-        emp.lector_uid.toLowerCase().includes(q);
+        emp.lector_uid.toLowerCase().includes(q) ||
+        (emp.rfc && emp.rfc.toLowerCase().includes(q)) ||
+        (emp.curp && emp.curp.toLowerCase().includes(q));
       const coincideEstado =
         filtroEstado === 'todos' ||
         (filtroEstado === 'activos' && emp.activo) ||
@@ -157,6 +173,9 @@ export default function Empleados() {
       nombre: emp.nombre,
       lector_uid: emp.lector_uid,
       sucursal_id: String(emp.sucursal_id),
+      fecha_nacimiento: fechaInput(emp.fecha_nacimiento),
+      rfc: emp.rfc ?? '',
+      curp: emp.curp ?? '',
     });
     setModalAbierto(true);
   }
@@ -186,6 +205,9 @@ export default function Empleados() {
       nombre: nombre.trim(),
       lector_uid: lector_uid.trim(),
       sucursal_id,
+      fecha_nacimiento: form.fecha_nacimiento || null,
+      rfc: form.rfc.trim().toUpperCase() || null,
+      curp: form.curp.trim().toUpperCase() || null,
     };
 
     try {
@@ -314,7 +336,7 @@ export default function Empleados() {
             <input
               type="text"
               className={styles.inputBusqueda}
-              placeholder="Buscar por nombre o UID..."
+              placeholder="Buscar por nombre, UID, RFC o CURP..."
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
             />
@@ -350,6 +372,9 @@ export default function Empleados() {
                 <th className={styles.colId}>#</th>
                 <th>Nombre</th>
                 <th>UID Lector</th>
+                <th>Nacimiento</th>
+                <th>RFC</th>
+                <th>CURP</th>
                 <th>Sucursal</th>
                 <th>Estado</th>
                 <th>Registrado</th>
@@ -359,14 +384,14 @@ export default function Empleados() {
             <tbody>
               {cargando ? (
                 <tr>
-                  <td colSpan="7" className={styles.estadoTabla}>
+                  <td colSpan="10" className={styles.estadoTabla}>
                     <div className={styles.cargandoSpinner} />
                     Cargando empleados...
                   </td>
                 </tr>
               ) : empleadosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className={styles.estadoTabla}>
+                  <td colSpan="10" className={styles.estadoTabla}>
                     No se encontraron empleados con los filtros aplicados.
                   </td>
                 </tr>
@@ -378,6 +403,9 @@ export default function Empleados() {
                     <td>
                       <span className={styles.colUid}>{emp.lector_uid}</span>
                     </td>
+                    <td className={styles.colFecha}>{formatFechaSolo(emp.fecha_nacimiento)}</td>
+                    <td><span className={styles.colUid}>{emp.rfc ?? '—'}</span></td>
+                    <td><span className={styles.colUid}>{emp.curp ?? '—'}</span></td>
                     <td>{emp.sucursal?.nombre ?? '—'}</td>
                     <td>
                       <span className={emp.activo ? styles.badgeActivo : styles.badgeInactivo}>
@@ -462,13 +490,14 @@ export default function Empleados() {
                 <input
                   className={styles.input}
                   type="text"
-                  placeholder="Ej. UID013"
+                  placeholder="Ej. 13"
                   value={form.lector_uid}
                   onChange={e => setForm(p => ({ ...p, lector_uid: e.target.value }))}
                   disabled={guardando}
                 />
                 <span className={styles.inputHint}>
-                  Identificador único del checador físico. Debe ser irrepetible.
+                  Debe coincidir exactamente con el ID de usuario configurado en el
+                  checador (normalmente numérico). Único dentro de cada sucursal.
                 </span>
               </div>
 
@@ -485,6 +514,46 @@ export default function Empleados() {
                     <option key={s.id} value={s.id}>{s.nombre}</option>
                   ))}
                 </select>
+              </div>
+
+              <div className={styles.campo}>
+                <label className={styles.etiqueta}>Fecha de nacimiento</label>
+                <input
+                  className={styles.input}
+                  type="date"
+                  value={form.fecha_nacimiento}
+                  onChange={e => setForm(p => ({ ...p, fecha_nacimiento: e.target.value }))}
+                  disabled={guardando}
+                  max={new Date().toISOString().slice(0, 10)}
+                />
+              </div>
+
+              <div className={styles.campo}>
+                <label className={styles.etiqueta}>RFC</label>
+                <input
+                  className={styles.input}
+                  type="text"
+                  placeholder="Ej. PELJ850312H45"
+                  value={form.rfc}
+                  onChange={e => setForm(p => ({ ...p, rfc: e.target.value.toUpperCase() }))}
+                  disabled={guardando}
+                  maxLength={13}
+                />
+                <span className={styles.inputHint}>RFC de persona física (13 caracteres).</span>
+              </div>
+
+              <div className={styles.campo}>
+                <label className={styles.etiqueta}>CURP</label>
+                <input
+                  className={styles.input}
+                  type="text"
+                  placeholder="Ej. PELJ850312HDFRPN08"
+                  value={form.curp}
+                  onChange={e => setForm(p => ({ ...p, curp: e.target.value.toUpperCase() }))}
+                  disabled={guardando}
+                  maxLength={18}
+                />
+                <span className={styles.inputHint}>Clave Única de Registro de Población (18 caracteres).</span>
               </div>
             </div>
 

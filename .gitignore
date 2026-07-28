@@ -6,6 +6,8 @@ checador/.venv/
 __pycache__/
 uploads/*
 !uploads/.gitkeep
+backend/uploads/*
+!backend/uploads/.gitkeep
 *.log
 .DS_Store
 .env.example
@@ -17,3 +19,4 @@ claude.txt
 skills-lock.json
 backend/package-lock.json
 frontend/package-lock.json
+CREDENCIALES.md

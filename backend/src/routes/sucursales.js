@@ -10,7 +10,7 @@ router.get('/', verificarToken, async (_req, res) => {
     const sucursales = await prisma.sucursales.findMany({
       where: { activo: true },
       orderBy: { nombre: 'asc' },
-      select: { id: true, nombre: true },
+      select: { id: true, nombre: true, dias_laborales: true },
     });
     res.json(sucursales);
   } catch (e) {

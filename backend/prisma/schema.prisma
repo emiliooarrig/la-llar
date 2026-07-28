@@ -27,6 +27,11 @@ model sucursales {
   nombre String  @db.VarChar(150)
   activo Boolean @default(true)
 
+  // Días laborales de la unidad, como números ISO separados por coma
+  // (1=Lunes … 7=Domingo). Determina qué días cuentan como falta cuando
+  // no hay registro ni justificación. Por defecto lunes a sábado.
+  dias_laborales String @default("1,2,3,4,5,6") @db.VarChar(20)
+
   usuarios          usuarios[]
   empleados         empleados[]
   asistencias       asistencias[]
@@ -41,7 +46,13 @@ model empleados {
   activo      Boolean  @default(true)
   creado_en   DateTime @default(now())
 
-  sucursal        sucursales                 @relation(fields: [sucursal_id], references: [id])
+  // Datos personales básicos (nómina). Opcionales para no romper altas
+  // rápidas ni registros previos. RFC persona física = 13, CURP = 18.
+  fecha_nacimiento DateTime? @db.Date
+  rfc              String?   @db.VarChar(13)
+  curp             String?   @db.VarChar(18)
+
+  sucursal        sucursales                @relation(fields: [sucursal_id], references: [id])
   asistencias     asistencias[]
   justificaciones justificaciones[]
   correcciones    correcciones_asistencia[]
@@ -61,6 +72,12 @@ model asistencias {
 
   empleado empleados  @relation(fields: [empleado_id], references: [id])
   sucursal sucursales @relation(fields: [sucursal_id], references: [id])
+
+  // Clave natural para idempotencia: un checador no produce dos marcas
+  // idénticas (mismo empleado, tipo y segundo). Evita duplicados cuando el
+  // agente reenvía una marca que el backend ya había guardado (entrega
+  // at-least-once tras un timeout posterior al commit).
+  @@unique([empleado_id, tipo, timestamp])
 }
 
 model justificaciones {
@@ -84,8 +101,8 @@ model correcciones_asistencia {
   id            Int      @id @default(autoincrement())
   empleado_id   Int
   fecha         String   @db.VarChar(10) // 'YYYY-MM-DD'
-  entrada       String?  @db.VarChar(5)  // 'HH:MM'
-  salida        String?  @db.VarChar(5)  // 'HH:MM'
+  entrada       String?  @db.VarChar(5) // 'HH:MM'
+  salida        String?  @db.VarChar(5) // 'HH:MM'
   corregido_por Int
   creado_en     DateTime @default(now())
 
@@ -106,14 +123,14 @@ model proveedores {
 }
 
 model documentos_proveedor {
-  id              Int              @id @default(autoincrement())
+  id              Int             @id @default(autoincrement())
   proveedor_id    Int
-  nombre_original String           @db.VarChar(255)
-  ruta_archivo    String           @db.VarChar(500)
-  tipo_mime       String           @db.VarChar(100)
+  nombre_original String          @db.VarChar(255)
+  ruta_archivo    String          @db.VarChar(500)
+  tipo_mime       String          @db.VarChar(100)
   subido_por      Int
-  estado          EstadoDocumento  @default(pendiente)
-  creado_en       DateTime         @default(now())
+  estado          EstadoDocumento @default(pendiente)
+  creado_en       DateTime        @default(now())
 
   proveedor proveedores @relation(fields: [proveedor_id], references: [id])
 }
@@ -129,6 +146,29 @@ model documentos_unidad {
   creado_en       DateTime        @default(now())
 
   sucursal sucursales @relation(fields: [sucursal_id], references: [id])
+}
+
+// Archivo histórico: documentos que el administrador saca del flujo activo
+// de Proveedores/Unidades ("Mandar a Histórico") y quedan como registro
+// permanente. Se conserva la fecha original de subida (subido_en), quién
+// subió el archivo (subido_por) y quién aprobó el envío (aprobado_por).
+// origen_nombre se desnormaliza para que el histórico sobreviva a renombres
+// o bajas del proveedor/unidad y para poder buscar sin JOINs.
+model documentos_historicos {
+  id              Int             @id @default(autoincrement())
+  origen          OrigenDocumento
+  origen_id       Int
+  origen_nombre   String          @db.VarChar(150)
+  nombre_original String          @db.VarChar(255)
+  ruta_archivo    String          @db.VarChar(500)
+  tipo_mime       String          @db.VarChar(100)
+  subido_por      Int
+  subido_en       DateTime
+  aprobado_por    Int
+  enviado_en      DateTime        @default(now())
+
+  @@index([origen])
+  @@index([nombre_original])
 }
 
 model ventanas_carga {
@@ -160,10 +200,17 @@ enum TipoJustificacion {
 enum Modulo {
   proveedores
   unidades
+  // Permiso temporal para que los gerentes editen asistencias de su unidad.
+  asistencias
 }
 
 enum EstadoDocumento {
   pendiente
   aprobado
   desaprobado
+}
+
+enum OrigenDocumento {
+  unidad
+  proveedor
 }

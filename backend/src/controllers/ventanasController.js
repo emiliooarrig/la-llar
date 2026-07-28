@@ -94,4 +94,4 @@ async function limpiarProgramacion(req, res) {
   }
 }
 
-module.exports = { obtener, toggle, programar, limpiarProgramacion };
+module.exports = { obtener, toggle, programar, limpiarProgramacion, calcularAbierta };

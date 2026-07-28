@@ -36,6 +36,10 @@ async function registrarAsistencia(req, res) {
   const marca = parsearTimestamp(timestamp);
   if (!marca) return res.status(400).json({ error: 'timestamp inválido (use YYYY-MM-DDTHH:MM:SS)' });
 
+  // Se declara fuera del try para que el manejo de duplicados (catch) pueda
+  // localizar la marca ya existente por su clave natural.
+  let empleadoId = null;
+
   try {
     // 1) Unidad del dispositivo (resuelta por nombre desde su token).
     const sucursal = await prisma.sucursales.findFirst({
@@ -55,6 +59,7 @@ async function registrarAsistencia(req, res) {
     if (!empleado) {
       return res.status(404).json({ error: 'Empleado no encontrado en esta unidad' });
     }
+    empleadoId = empleado.id;
 
     // 3) Insertar la marca cruda (no se modifica nunca; las correcciones van aparte).
     const asistencia = await prisma.asistencias.create({
@@ -64,6 +69,17 @@ async function registrarAsistencia(req, res) {
 
     return res.status(201).json({ id: asistencia.id, registrado: true });
   } catch (e) {
+    // Idempotencia: si la marca ya existía (mismo empleado, tipo y timestamp),
+    // la clave única la rechaza (P2002). El agente usa entrega at-least-once y
+    // puede reenviar una marca ya guardada; respondemos 200 "duplicada" para
+    // que la dé por entregada y la saque de su cola, sin crear duplicados.
+    if (e.code === 'P2002' && empleadoId != null) {
+      const existente = await prisma.asistencias.findFirst({
+        where: { empleado_id: empleadoId, tipo, timestamp: marca },
+        select: { id: true },
+      });
+      return res.status(200).json({ id: existente?.id ?? null, registrado: false, duplicada: true });
+    }
     console.error('Error al registrar asistencia del checador:', e);
     return res.status(500).json({ error: 'Error interno del servidor' });
   }

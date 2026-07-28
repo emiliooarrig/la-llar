@@ -97,7 +97,25 @@ function IconoBuscar() {
   );
 }
 
-const FORM_UNI_VACIO = { nombre: '' };
+const FORM_UNI_VACIO = { nombre: '', dias: [1, 2, 3, 4, 5, 6] };
+
+// Días de la semana en ISO (1=Lunes … 7=Domingo).
+const DIAS_LABORALES = [
+  { iso: 1, corta: 'Lun' },
+  { iso: 2, corta: 'Mar' },
+  { iso: 3, corta: 'Mié' },
+  { iso: 4, corta: 'Jue' },
+  { iso: 5, corta: 'Vie' },
+  { iso: 6, corta: 'Sáb' },
+  { iso: 7, corta: 'Dom' },
+];
+
+// Convierte "1,2,3,4,5,6" → [1,2,3,4,5,6]. Fallback: lunes a sábado.
+function parseDiasLaborales(str) {
+  if (!str) return [1, 2, 3, 4, 5, 6];
+  const dias = String(str).split(',').map(s => parseInt(s, 10)).filter(n => n >= 1 && n <= 7);
+  return dias.length ? dias : [1, 2, 3, 4, 5, 6];
+}
 
 /* Orden estable del catálogo: activas primero, luego alfabético. */
 function ordenarUnidades(a, b) {
@@ -257,8 +275,17 @@ export default function AdminUnidades() {
   function abrirEditarUni(uni) {
     setModoUni('editar');
     setEditandoUni(uni);
-    setFormUni({ nombre: uni.nombre });
+    setFormUni({ nombre: uni.nombre, dias: parseDiasLaborales(uni.dias_laborales) });
     setModalUni(true);
+  }
+
+  function toggleDiaUni(iso) {
+    setFormUni(p => {
+      const dias = p.dias.includes(iso)
+        ? p.dias.filter(d => d !== iso)
+        : [...p.dias, iso].sort((a, b) => a - b);
+      return { ...p, dias };
+    });
   }
 
   function cerrarModalUni() {
@@ -274,16 +301,21 @@ export default function AdminUnidades() {
       Swal.fire({ icon: 'warning', title: 'Nombre requerido', text: 'Escribe el nombre de la unidad.', confirmButtonColor: '#E8621A' });
       return;
     }
+    if (formUni.dias.length === 0) {
+      Swal.fire({ icon: 'warning', title: 'Días laborales requeridos', text: 'Selecciona al menos un día laboral para la unidad.', confirmButtonColor: '#E8621A' });
+      return;
+    }
+    const payload = { nombre, dias_laborales: formUni.dias };
 
     setGuardandoUni(true);
     try {
       let unidad;
       if (modoUni === 'crear') {
-        const res = await api.post('/unidades', { nombre });
+        const res = await api.post('/unidades', payload);
         unidad = res.data;
         setUnidades(prev => [...prev, unidad].sort(ordenarUnidades));
       } else {
-        const res = await api.put(`/unidades/${editandoUni.id}`, { nombre });
+        const res = await api.put(`/unidades/${editandoUni.id}`, payload);
         unidad = res.data;
         setUnidades(prev => prev.map(u => (u.id === unidad.id ? unidad : u)).sort(ordenarUnidades));
       }
@@ -676,13 +708,35 @@ export default function AdminUnidades() {
                   className={styles.inputTexto}
                   placeholder="Ej. Cocina Centro"
                   value={formUni.nombre}
-                  onChange={e => setFormUni({ nombre: e.target.value })}
+                  onChange={e => setFormUni(p => ({ ...p, nombre: e.target.value }))}
                   onKeyDown={e => e.key === 'Enter' && !guardandoUni && handleGuardarUni()}
                   maxLength={150}
                   disabled={guardandoUni}
                   autoFocus
                 />
                 <span className={styles.inputHintProv}>Debe ser único en el sistema.</span>
+              </div>
+
+              <div className={styles.campoProg}>
+                <label className={styles.etiquetaProg}>Días laborales *</label>
+                <div className={styles.diasSelector}>
+                  {DIAS_LABORALES.map(d => (
+                    <button
+                      key={d.iso}
+                      type="button"
+                      className={`${styles.diaChip} ${formUni.dias.includes(d.iso) ? styles.diaChipActivo : ''}`}
+                      onClick={() => toggleDiaUni(d.iso)}
+                      disabled={guardandoUni}
+                      aria-pressed={formUni.dias.includes(d.iso)}
+                    >
+                      {d.corta}
+                    </button>
+                  ))}
+                </div>
+                <span className={styles.inputHintProv}>
+                  Marca los días en que opera la unidad. Los días sin registro ni justificación
+                  se contarán como falta en el resumen de asistencias.
+                </span>
               </div>
             </div>
 

@@ -19,6 +19,7 @@
     "express": "^4.21.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.1.1",
+    "pdfmake": "^0.2.20",
     "uuid": "^11.1.1"
   },
   "prisma": {
