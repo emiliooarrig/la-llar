@@ -13,3 +13,7 @@ CLAUDE.md
 .claude
 .agents
 claude --resume d8369f54-bbe9-4ff1-92b5-72d380855d9f
+claude.txt
+skills-lock.json
+backend/package-lock.json
+frontend/package-lock.json
