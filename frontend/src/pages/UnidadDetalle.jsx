@@ -42,6 +42,7 @@ export default function UnidadDetalle() {
   const [subiendo, setSubiendo]     = useState(false);
   const [cambiando, setCambiando]   = useState(null);
   const [eliminando, setEliminando] = useState(null);
+  const [archivando, setArchivando] = useState(null);
 
   useEffect(() => { cargarUnidad(); }, [id]);
 
@@ -135,6 +136,36 @@ export default function UnidadDetalle() {
       Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo actualizar el estado.', confirmButtonColor: '#E8621A' });
     } finally {
       setCambiando(null);
+    }
+  }
+
+  /* ── Mandar a Histórico ─────────────────────────────── */
+  async function handleHistorico(doc) {
+    const result = await Swal.fire({
+      title: '¿Mandar a Histórico?',
+      html: `<span style="word-break:break-word">"<strong>${doc.nombre_original}</strong>" saldrá de esta unidad y quedará en el archivo histórico del sistema.</span>`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#E8621A',
+      cancelButtonColor: '#9E9892',
+      confirmButtonText: 'Sí, mandar',
+      cancelButtonText: 'Cancelar',
+    });
+    if (!result.isConfirmed) return;
+
+    setArchivando(doc.id);
+    try {
+      await api.post('/historicos', { tipo: 'unidad', doc_id: doc.id });
+      setUnidad(prev => ({
+        ...prev,
+        documentos_unidad: prev.documentos_unidad.filter(d => d.id !== doc.id),
+      }));
+      Swal.fire({ icon: 'success', title: 'Enviado al histórico', timer: 1300, showConfirmButton: false, timerProgressBar: true });
+    } catch (e) {
+      const msg = e.response?.data?.error ?? 'No se pudo mandar el documento al histórico.';
+      Swal.fire({ icon: 'error', title: 'Error', text: msg, confirmButtonColor: '#E8621A' });
+    } finally {
+      setArchivando(null);
     }
   }
 
@@ -303,11 +334,20 @@ export default function UnidadDetalle() {
                                 <IconoX />
                               </button>
                             )}
+                            {/* Mandar a Histórico */}
+                            <button
+                              className={styles.btnHistorico}
+                              onClick={() => handleHistorico(doc)}
+                              disabled={archivando === doc.id || cambiando === doc.id || eliminando === doc.id}
+                              title="Mandar a Histórico"
+                            >
+                              <IconoArchivo />
+                            </button>
                             {/* Eliminar */}
                             <button
                               className={styles.btnEliminar}
                               onClick={() => handleEliminar(doc)}
-                              disabled={eliminando === doc.id || cambiando === doc.id}
+                              disabled={eliminando === doc.id || cambiando === doc.id || archivando === doc.id}
                               title="Eliminar documento"
                             >
                               <IconoTrash />
@@ -372,6 +412,15 @@ function IconoX() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  );
+}
+function IconoArchivo() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="20" height="5" rx="1"/>
+      <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/>
+      <line x1="10" y1="12" x2="14" y2="12"/>
     </svg>
   );
 }

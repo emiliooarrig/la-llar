@@ -51,6 +51,14 @@ function IcoDocumentos() {
   );
 }
 
+function IcoHistorico() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="20" height="5" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" /><line x1="10" y1="12" x2="14" y2="12" />
+    </svg>
+  );
+}
+
 /* ── Iconos del tablero (KPIs) ─────────────────────────── */
 function IcoBrigada() {
   return (
@@ -97,6 +105,7 @@ const MODULOS = {
     { titulo: 'Empleados', desc: 'Alta, edición y baja de empleados.', to: '/admin/empleados', Icono: IcoEmpleados, tono: 'acero' },
     { titulo: 'Usuarios', desc: 'Accesos al sistema: roles y credenciales.', to: '/admin/usuarios', Icono: IcoUsuarios, tono: 'naranja' },
     { titulo: 'Por revisar', desc: 'Documentos pendientes de aprobación.', to: '/admin/pendientes', Icono: IcoDocumentos, tono: 'oliva' },
+    { titulo: 'Histórico', desc: 'Archivo permanente de documentos.', to: '/admin/historicos', Icono: IcoHistorico, tono: 'acero' },
   ],
   gerente: [
     { titulo: 'Asistencias', desc: 'Entradas y salidas de tu sucursal.', to: '/gerente/asistencias', Icono: IcoAsistencias, tono: 'acero' },

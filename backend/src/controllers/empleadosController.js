@@ -3,6 +3,16 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const INCLUDE_SUCURSAL = { sucursal: { select: { id: true, nombre: true } } };
 
+// Normaliza los datos personales opcionales del cuerpo de la petición.
+// Cadenas vacías → null; RFC/CURP en mayúsculas; fecha 'YYYY-MM-DD' → Date.
+function datosPersonales({ fecha_nacimiento, rfc, curp }) {
+  return {
+    fecha_nacimiento: fecha_nacimiento ? new Date(fecha_nacimiento) : null,
+    rfc:  rfc?.trim()  ? rfc.trim().toUpperCase()  : null,
+    curp: curp?.trim() ? curp.trim().toUpperCase() : null,
+  };
+}
+
 async function listar(req, res) {
   try {
     // El gerente solo ve a los empleados de su unidad asignada.
@@ -32,6 +42,7 @@ async function crear(req, res) {
         nombre: nombre.trim(),
         lector_uid: lector_uid.trim(),
         sucursal_id: parseInt(sucursal_id),
+        ...datosPersonales(req.body),
       },
       include: INCLUDE_SUCURSAL,
     });
@@ -56,6 +67,7 @@ async function actualizar(req, res) {
         nombre: nombre.trim(),
         lector_uid: lector_uid.trim(),
         sucursal_id: parseInt(sucursal_id),
+        ...datosPersonales(req.body),
       },
       include: INCLUDE_SUCURSAL,
     });

@@ -13,6 +13,7 @@ import MisDocumentos from './pages/MisDocumentos';
 import AdminUnidades from './pages/AdminUnidades';
 import UnidadDetalle from './pages/UnidadDetalle';
 import MisUnidades from './pages/MisUnidades';
+import Historicos from './pages/Historicos';
 
 function RedirigirSegunRol() {
   const { usuario } = useAuth();
@@ -62,6 +63,15 @@ export default function App() {
             element={
               <RutaProtegida roles={['administrador']}>
                 <Pendientes />
+              </RutaProtegida>
+            }
+          />
+
+          <Route
+            path="/admin/historicos"
+            element={
+              <RutaProtegida roles={['administrador']}>
+                <Historicos />
               </RutaProtegida>
             }
           />

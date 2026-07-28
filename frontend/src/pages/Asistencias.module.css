@@ -66,7 +66,80 @@
   padding: 40px 32px;
 }
 
-.paginaHeader { margin-bottom: 24px; }
+.paginaHeader {
+  margin-bottom: 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.accionesHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Botón del admin para otorgar/revocar el permiso de edición de gerentes */
+.btnPermiso {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--color-blanco);
+  border: 1.5px solid var(--color-gris);
+  border-radius: var(--radio-sm);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btnPermiso:hover { border-color: var(--color-naranja); color: var(--color-naranja); }
+
+.puntoPermiso { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.puntoPermiso_activo     { background-color: #2E7D32; box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.18); }
+.puntoPermiso_programado { background-color: #E8A317; box-shadow: 0 0 0 3px rgba(232, 163, 23, 0.18); }
+.puntoPermiso_cerrado    { background-color: var(--color-gris-medio); }
+
+/* Aviso al gerente cuando el permiso de edición está vigente */
+.avisoEdicion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 12px 16px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #1B5E20;
+  background-color: rgba(46, 125, 50, 0.08);
+  border: 1.5px solid rgba(46, 125, 50, 0.28);
+  border-radius: var(--radio-sm);
+}
+
+.avisoEdicion svg { flex-shrink: 0; color: #2E7D32; }
+.avisoEdicion strong { font-weight: 700; }
+
+.btnReporte {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background-color: var(--color-naranja);
+  color: var(--color-blanco);
+  border: none;
+  border-radius: var(--radio-sm);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 0.15s, opacity 0.15s;
+}
+
+.btnReporte:hover:not(:disabled) { background-color: var(--color-naranja-oscuro); }
+.btnReporte:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .tituloPagina { font-size: 24px; font-weight: 700; color: var(--color-texto); margin-bottom: 4px; }
 
@@ -382,7 +455,9 @@
 
 .filaHoras { display: flex; gap: 14px; }
 
-.campo { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+/* min-width: 0 permite que el campo encoja dentro del flex (los inputs
+   datetime-local tienen un ancho intrínseco que desborda el modal). */
+.campo { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
 
 .etiqueta { font-size: 13px; font-weight: 600; color: var(--color-texto); }
 
@@ -505,6 +580,188 @@
   animation: girar 0.7s linear infinite;
 }
 
+/* ── Modal de permiso de edición para gerentes ──────────── */
+/* Igual a .modalTitulo pero sin capitalize (no es una fecha). */
+.modalTituloPermiso { font-size: 17px; font-weight: 700; color: var(--color-texto); }
+
+.permisoDesc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-texto-suave);
+}
+
+.permisoDesc strong { color: var(--color-texto); }
+
+.estadoPermiso {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  border-radius: var(--radio-sm);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.estadoPermiso_activo {
+  color: #1B5E20;
+  background-color: rgba(46, 125, 50, 0.08);
+  border: 1.5px solid rgba(46, 125, 50, 0.28);
+}
+
+.estadoPermiso_programado {
+  color: #8A5A00;
+  background-color: rgba(232, 163, 23, 0.10);
+  border: 1.5px solid rgba(232, 163, 23, 0.35);
+}
+
+.estadoPermiso_cerrado {
+  color: var(--color-texto-suave);
+  background-color: var(--color-gris-claro);
+  border: 1.5px solid var(--color-gris);
+}
+
+.btnRevocarPermiso {
+  margin-right: auto;
+  padding: 9px 16px;
+  border: 1.5px solid rgba(217, 48, 37, 0.4);
+  border-radius: var(--radio-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: #D93025;
+  background: none;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.btnRevocarPermiso:hover:not(:disabled) { border-color: #D93025; background-color: rgba(217, 48, 37, 0.06); }
+.btnRevocarPermiso:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Los datetime-local no encogen tanto como los time: si no caben
+   lado a lado, cada campo pasa a ocupar su propia fila. */
+.filaPermiso { flex-wrap: wrap; }
+.filaPermiso .campo { flex: 1 1 170px; }
+
+/* ── Resumen ejecutivo ──────────────────────────────────── */
+.resumenSeccion {
+  margin-top: 28px;
+  background: var(--color-blanco);
+  border: 1.5px solid var(--color-gris);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-sm);
+  padding: 22px 24px 20px;
+}
+
+.resumenHeader { margin-bottom: 18px; }
+
+.resumenTitulo { font-size: 18px; font-weight: 700; color: var(--color-texto); }
+
+.resumenSub { font-size: 13px; color: var(--color-texto-suave); margin-top: 3px; }
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.kpiCard {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 16px 18px;
+  border: 1.5px solid var(--color-gris-claro);
+  border-radius: var(--radio-sm);
+  background-color: var(--color-gris-claro);
+}
+
+.kpiCardAlerta {
+  border-color: rgba(198, 40, 40, 0.30);
+  background-color: rgba(198, 40, 40, 0.06);
+}
+
+.kpiValor { font-size: 26px; font-weight: 700; color: var(--color-texto); line-height: 1.1; }
+
+.kpiCardAlerta .kpiValor { color: var(--color-error); }
+
+.kpiEtiqueta {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.tablaWrap { overflow-x: auto; }
+
+.tablaResumen {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  min-width: 560px;
+}
+
+.tablaResumen th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 8px 12px;
+  border-bottom: 1.5px solid var(--color-gris);
+}
+
+.tablaResumen th:not(:first-child) { text-align: center; }
+
+.tablaResumen td {
+  padding: 11px 12px;
+  color: var(--color-texto);
+  border-bottom: 1px solid var(--color-gris-claro);
+  text-align: center;
+}
+
+.tablaResumen td:first-child { text-align: left; }
+
+.tablaResumen tbody tr:hover { background-color: var(--color-gris-claro); }
+
+.filaActual { background-color: rgba(232, 98, 26, 0.06); }
+.filaActual:hover { background-color: rgba(232, 98, 26, 0.10) !important; }
+
+.semanaRango { font-weight: 600; }
+
+.badgeActual {
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-naranja);
+  background-color: rgba(232, 98, 26, 0.12);
+  padding: 2px 7px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.celHoras { font-weight: 700; color: var(--color-texto); }
+
+.celFalta { color: var(--color-error); font-weight: 700; }
+
+.tablaResumen tfoot td {
+  padding: 12px;
+  font-weight: 700;
+  color: var(--color-texto);
+  border-top: 2px solid var(--color-gris);
+  border-bottom: none;
+  background-color: var(--color-gris-claro);
+}
+
+.resumenNota {
+  margin-top: 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-texto-suave);
+}
+
+.resumenNota strong { color: var(--color-texto); }
+
 /* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 768px) {
   .header { padding: 0 16px; }
@@ -513,4 +770,5 @@
   .celda { padding: 5px; }
   .horario, .etiquetaJust, .sinRegistro { font-size: 10px; }
   .horaE::before, .horaS::before { content: ''; }
+  .kpiGrid { grid-template-columns: repeat(2, 1fr); }
 }

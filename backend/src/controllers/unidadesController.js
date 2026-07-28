@@ -20,15 +20,46 @@ const INCLUDE_RESUMEN = {
 
 const NOMBRE_MAX = 150;
 
+/* Normaliza los días laborales a una cadena de números ISO (1=Lun … 7=Dom)
+ * ordenados, sin duplicados y separados por coma. Acepta un arreglo
+ * ([1,2,3]) o una cadena ('1,2,3'). Devuelve { error } o { dias }. */
+function normalizarDiasLaborales(entrada) {
+  const bruto = Array.isArray(entrada)
+    ? entrada
+    : String(entrada).split(',');
+
+  const dias = [];
+  for (const val of bruto) {
+    const n = parseInt(String(val).trim(), 10);
+    if (Number.isNaN(n) || n < 1 || n > 7) {
+      return { error: 'Los días laborales deben ser números del 1 (lunes) al 7 (domingo)' };
+    }
+    if (!dias.includes(n)) dias.push(n);
+  }
+  if (dias.length === 0) return { error: 'La unidad debe tener al menos un día laboral' };
+
+  dias.sort((a, b) => a - b);
+  return { dias: dias.join(',') };
+}
+
 /* Valida y normaliza el cuerpo de alta/edición de una unidad (sucursal).
- * Devuelve { error } si algo falla, o { nombre } ya saneado. */
-function validarDatosUnidad({ nombre }) {
+ * Devuelve { error } si algo falla, o { nombre, dias_laborales } saneados. */
+function validarDatosUnidad({ nombre, dias_laborales }) {
   const nombreLimpio = nombre?.trim();
   if (!nombreLimpio) return { error: 'El nombre de la unidad es requerido' };
   if (nombreLimpio.length > NOMBRE_MAX) {
     return { error: `El nombre no puede exceder ${NOMBRE_MAX} caracteres` };
   }
-  return { nombre: nombreLimpio };
+
+  // Si no se envían días, se mantiene el default del esquema (lunes a sábado).
+  let dias = '1,2,3,4,5,6';
+  if (dias_laborales !== undefined && dias_laborales !== null) {
+    const res = normalizarDiasLaborales(dias_laborales);
+    if (res.error) return { error: res.error };
+    dias = res.dias;
+  }
+
+  return { nombre: nombreLimpio, dias_laborales: dias };
 }
 
 /* Adjunta a cada unidad el conteo de empleados activos.
@@ -223,7 +254,7 @@ async function crear(req, res) {
     if (existente) return res.status(409).json({ error: 'Ya existe una unidad con ese nombre' });
 
     const unidad = await prisma.sucursales.create({
-      data: { nombre: datos.nombre },
+      data: { nombre: datos.nombre, dias_laborales: datos.dias_laborales },
       include: INCLUDE_RESUMEN,
     });
     res.status(201).json({ ...unidad, empleados_activos: 0 });
@@ -249,7 +280,7 @@ async function actualizar(req, res) {
 
     const unidad = await prisma.sucursales.update({
       where: { id },
-      data: { nombre: datos.nombre },
+      data: { nombre: datos.nombre, dias_laborales: datos.dias_laborales },
       include: INCLUDE_RESUMEN,
     });
     const [conData] = await adjuntarEmpleadosActivos([unidad]);
