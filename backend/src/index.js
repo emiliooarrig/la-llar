@@ -44,14 +44,7 @@ app.use('/api/ventanas', ventanasRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/historicos', historicosRoutes);
 
-app.get('/api/health', async (_req, res) => {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    res.json({ status: 'ok', db: 'conectada', timestamp: new Date().toISOString() });
-  } catch (e) {
-    res.status(503).json({ status: 'error', db: 'sin conexión', detalle: e.message });
-  }
-});
+app.get('/health', (req, res) => res.json({ ok: true }));
 
 app.use((err, _req, res, _next) => {
   console.error(err.stack);
