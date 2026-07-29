@@ -62,7 +62,7 @@ export default function MisDocumentos() {
     e.target.value = '';
     if (!file) return;
 
-    if (!ventana?.abierta) {
+    if (!ventanaAbierta) {
       Swal.fire({ icon: 'warning', title: 'Ventana cerrada', text: 'El administrador no ha habilitado la carga de documentos en este momento.', confirmButtonColor: '#E8621A' });
       return;
     }
