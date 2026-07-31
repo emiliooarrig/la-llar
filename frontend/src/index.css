@@ -25,6 +25,12 @@
   --radio-lg: 16px;
 }
 
+/* Evita que iOS reescale el texto al girar el dispositivo. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   font-family: 'Inter', system-ui, sans-serif;
   background-color: var(--color-blanco-hueso);
@@ -32,6 +38,13 @@ body {
   font-size: 15px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  /* Correos y nombres de archivo largos no rompen el layout. */
+  overflow-wrap: break-word;
+}
+
+/* Ningún medio se sale de su contenedor. */
+img, svg, video {
+  max-width: 100%;
 }
 
 a {
@@ -50,4 +63,15 @@ button {
 
 input, select, textarea {
   font-family: inherit;
+}
+
+/* En móvil, Safari/iOS hace zoom automático al enfocar un control cuyo
+   texto mide menos de 16px. Los selectores llevan :not() para ganarle en
+   especificidad a las clases .input/.selectFiltro de los módulos CSS. */
+@media (max-width: 640px) {
+  input:not([type='checkbox']):not([type='radio']),
+  select:not([multiple]),
+  textarea:not([readonly]) {
+    font-size: 16px;
+  }
 }

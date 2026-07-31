@@ -1,5 +1,7 @@
 .pagina {
   min-height: 100vh;
+  /* dvh evita el salto por la barra de direcciones en móvil. */
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -171,7 +173,29 @@
 }
 
 @media (max-width: 480px) {
+  .pagina {
+    padding: 16px;
+  }
+
   .panel {
     padding: 36px 24px 32px;
+  }
+}
+
+@media (max-width: 360px) {
+  .panel {
+    padding: 28px 18px 24px;
+  }
+
+  .encabezado {
+    margin-bottom: 26px;
+  }
+
+  .logoImg {
+    height: 66px;
+  }
+
+  .formulario {
+    gap: 16px;
   }
 }

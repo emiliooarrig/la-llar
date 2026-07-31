@@ -127,7 +127,9 @@
 /* ── Grid de tarjetas de proveedor ──────────────────────── */
 .gridProveedores {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  /* min(280px, 100%) evita que la pista mínima (280px) sea más ancha que
+     el contenedor en pantallas angostas y desborde horizontalmente. */
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   gap: 16px;
 }
 
@@ -277,22 +279,22 @@
   overflow: hidden;
   box-shadow: var(--sombra-sm);
 }
-.tabla { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tabla { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .tabla thead {
   background-color: var(--color-gris-claro);
   border-bottom: 1.5px solid var(--color-gris);
 }
 .tabla th {
-  padding: 12px 16px;
+  padding: 10px 12px;
   text-align: left;
-  font-size: 12px; font-weight: 600;
+  font-size: 11.5px; font-weight: 600;
   color: var(--color-texto-suave);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   white-space: nowrap;
 }
 .tabla td {
-  padding: 14px 16px;
+  padding: 11px 12px;
   border-bottom: 1px solid var(--color-gris-claro);
   color: var(--color-texto);
   vertical-align: middle;
@@ -831,13 +833,84 @@
 .segmentoBtnActivo .segmentoConteo { color: var(--color-naranja); }
 
 /* ── Responsive ─────────────────────────────────────────── */
+
+/* Tablet: el layout de 1200px ya no cabe; empiezan a apilarse
+   encabezados y filtros, y la tabla habilita scroll horizontal. */
+@media (max-width: 1024px) {
+  .contenido { padding: 32px 24px; }
+
+  /* La tabla nunca se comprime ni oculta columnas: si no cabe,
+     se desplaza horizontalmente dentro de su contenedor. */
+  .tablaWrapper {
+    overflow: hidden;          /* mantiene esquinas redondeadas en Y */
+    overflow-x: auto;          /* scroll horizontal cuando hace falta */
+    -webkit-overflow-scrolling: touch;
+  }
+  .tabla { min-width: 560px; }
+}
+
+/* Móvil grande / phablet */
 @media (max-width: 768px) {
   .header { padding: 0 16px; }
   .appNombre { display: none; }
   .contenido { padding: 24px 16px; }
-  .tabla th:nth-child(3),
-  .tabla td:nth-child(3) { display: none; }
+
+  /* Encabezado de página y barras de control se apilan a lo ancho. */
+  .paginaHeader,
+  .catalogoBarra,
   .filtroBarra { align-items: stretch; }
-  .buscador { max-width: none; }
-  .filtros { justify-content: space-between; }
+  .ventanaControles { width: 100%; }
+
+  /* Buscador y filtros ocupan todo el ancho disponible. */
+  .buscador { max-width: none; flex-basis: auto; }
+  .filtros { justify-content: space-between; width: 100%; }
+
+  /* Grid de tarjetas a una sola columna encogible (minmax(0,1fr) permite
+     que la columna baje del ancho de su contenido, evitando desbordes). */
+  .gridProveedores { grid-template-columns: minmax(0, 1fr); }
+
+  /* La tarjeta pasa a dos filas: [avatar + info] arriba, [stats + acciones]
+     abajo. La base 'calc(100% - 64px)' de info llena la primera fila y
+     empuja stats/acciones a la segunda, sin depender de anchos nowrap. */
+  .tarjetaProveedor { flex-wrap: wrap; gap: 12px; padding: 16px; }
+  .tarjetaInfo { flex: 1 1 calc(100% - 64px); }
+  .tarjetaStats {
+    flex: 1 1 auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+  .tarjetaAcciones { margin-left: auto; }
+
+  /* Cabecera de detalle apilada, con acciones a lo ancho. */
+  .detalleHeader { flex-direction: column; align-items: flex-start; }
+  .detalleAcciones { width: 100%; }
+  .btnSubir { flex: 1; justify-content: center; }
+
+  /* Densidad de tabla aún menor en pantallas chicas. */
+  .tabla { min-width: 540px; }
+  .tabla th { padding: 9px 10px; }
+  .tabla td { padding: 10px; }
+  .nombreArchivo { max-width: 160px; }
+}
+
+/* Teléfonos pequeños */
+@media (max-width: 480px) {
+  .contenido { padding: 20px 12px; }
+  .tituloPagina { font-size: 21px; }
+
+  /* Controles de ventana totalmente apilados. */
+  .ventanaControles { flex-direction: column; align-items: stretch; }
+  .ventanaControles > * { width: 100%; justify-content: center; }
+  .ventanaWrapper { align-items: stretch; }
+
+  /* Filtros segmentados a lo ancho. */
+  .filtros { flex-direction: column; align-items: stretch; }
+  .segmento { width: 100%; }
+  .segmentoBtn { flex: 1; text-align: center; }
+
+  /* Botones del modal de programación a lo ancho. */
+  .modalProgPie { flex-direction: column-reverse; }
+  .modalProgPie .btnCancelarProg,
+  .modalProgPie .btnGuardarProg { width: 100%; }
 }

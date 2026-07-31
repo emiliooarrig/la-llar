@@ -210,7 +210,7 @@
 .tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 13.5px;
 }
 
 .tabla thead {
@@ -219,18 +219,18 @@
 }
 
 .tabla th {
-  padding: 12px 16px;
+  padding: 10px 12px;
   text-align: left;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--color-texto-suave);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   white-space: nowrap;
 }
 
 .tabla td {
-  padding: 14px 16px;
+  padding: 11px 12px;
   border-bottom: 1px solid var(--color-gris-claro);
   color: var(--color-texto);
   vertical-align: middle;
@@ -596,26 +596,43 @@
 }
 
 /* ── Responsive ─────────────────────────────────────────── */
+
+/* Tablet: la tabla de empleados es ancha (10 columnas); en vez de
+   ocultar columnas se habilita scroll horizontal para no perder datos. */
+@media (max-width: 1024px) {
+  .contenido { padding: 32px 24px; }
+
+  .tablaWrapper {
+    overflow: hidden;          /* mantiene esquinas redondeadas en Y */
+    overflow-x: auto;          /* scroll horizontal cuando hace falta */
+    -webkit-overflow-scrolling: touch;
+  }
+  .tabla { min-width: 900px; }
+}
+
+/* Móvil grande / phablet */
 @media (max-width: 768px) {
-  .header {
-    padding: 0 16px;
-  }
+  .header { padding: 0 16px; }
+  .appNombre { display: none; }
+  .contenido { padding: 24px 16px; }
 
-  .appNombre {
-    display: none;
-  }
+  /* Encabezado y botón de crear a lo ancho. */
+  .paginaHeader { align-items: stretch; }
+  .botonCrear { width: 100%; justify-content: center; }
 
-  .contenido {
-    padding: 24px 16px;
-  }
+  /* Filtros apilados y a lo ancho. */
+  .filtros { flex-direction: column; }
+  .campoBusqueda { min-width: 0; }
+  .selectFiltro { width: 100%; box-sizing: border-box; }
 
-  .tabla th:nth-child(6),
-  .tabla td:nth-child(6) {
-    display: none;
-  }
+  /* Densidad de tabla aún menor. */
+  .tabla { min-width: 860px; }
+  .tabla th { padding: 9px 10px; }
+  .tabla td { padding: 9px 10px; }
+}
 
-  .tabla th:nth-child(1),
-  .tabla td:nth-child(1) {
-    display: none;
-  }
+/* Teléfonos pequeños */
+@media (max-width: 480px) {
+  .contenido { padding: 20px 12px; }
+  .tituloPagina { font-size: 21px; }
 }
