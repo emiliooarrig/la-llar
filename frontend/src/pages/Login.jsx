@@ -5,6 +5,9 @@ import { useAuth } from '../context/AuthContext';
 import styles from './Login.module.css';
 import logo from '../logo.jpg';
 
+// Debe coincidir con LOGIN_MAX_INTENTOS del backend (middleware/rateLimit.js).
+const INTENTOS_MAX = 5;
+
 const RUTA_POR_ROL = {
   administrador: '/admin',
   gerente: '/gerente',
@@ -52,12 +55,34 @@ export default function Login() {
 
       navigate(ruta, { replace: true });
     } catch (error) {
-      const mensaje =
-        error.response?.data?.error || 'No se pudo iniciar sesión. Intenta de nuevo.';
+      const datos = error.response?.data;
+      const mensaje = datos?.error || 'No se pudo iniciar sesión. Intenta de nuevo.';
+
+      // 429: el backend ya bloqueó a esta IP; su mensaje trae la espera.
+      if (error.response?.status === 429) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Demasiados intentos',
+          text: mensaje,
+          confirmButtonColor: '#E8621A',
+        });
+        return;
+      }
+
+      // A partir del segundo fallo avisamos cuántos intentos quedan antes
+      // del bloqueo temporal (el backend manda `intentosRestantes`).
+      const restantes = datos?.intentosRestantes;
+      const avisarRestantes = typeof restantes === 'number' && restantes < INTENTOS_MAX - 1;
+
       Swal.fire({
         icon: 'error',
         title: 'Acceso denegado',
         text: mensaje,
+        footer: avisarRestantes
+          ? restantes > 0
+            ? `Te queda${restantes === 1 ? '' : 'n'} ${restantes} intento${restantes === 1 ? '' : 's'} antes de que se bloquee el acceso por 15 minutos.`
+            : 'Este fue tu último intento: el acceso queda bloqueado por 15 minutos.'
+          : undefined,
         confirmButtonColor: '#E8621A',
       });
     } finally {
@@ -103,7 +128,7 @@ export default function Login() {
                 name="password"
                 type={mostrarPassword ? 'text' : 'password'}
                 className={styles.input}
-                placeholder="••••••••"
+                placeholder="••••••••••••••"
                 value={form.password}
                 onChange={handleChange}
                 autoComplete="current-password"

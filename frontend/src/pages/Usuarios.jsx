@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { useAuth } from '../context/AuthContext';
 import LogoInicio from '../components/LogoInicio';
+import MenuUsuario from '../components/MenuUsuario';
 import Footer from '../components/Footer';
 import api from '../services/api';
 import styles from './Usuarios.module.css';
@@ -132,8 +132,7 @@ const FORM_VACIO = { nombre: '', email: '', password: '', rol: '', sucursal_id: 
 
 /* ── Componente principal ───────────────────────────────── */
 export default function Usuarios() {
-  const navigate = useNavigate();
-  const { usuario, logout } = useAuth();
+  const { usuario } = useAuth();
 
   const [usuarios, setUsuarios]     = useState([]);
   const [sucursales, setSucursales] = useState([]);
@@ -300,16 +299,6 @@ export default function Usuarios() {
     }
   }
 
-  /* ── Logout ────────────────────────────────────────── */
-  async function handleLogout() {
-    const result = await Swal.fire({
-      title: '¿Cerrar sesión?', text: 'Se cerrará tu sesión actual.', icon: 'question',
-      showCancelButton: true, confirmButtonColor: '#E8621A', cancelButtonColor: '#9E9892',
-      confirmButtonText: 'Sí, salir', cancelButtonText: 'Cancelar',
-    });
-    if (result.isConfirmed) { logout(); navigate('/login', { replace: true }); }
-  }
-
   /* ── Render ────────────────────────────────────────── */
   return (
     <div className={styles.pagina}>
@@ -323,7 +312,7 @@ export default function Usuarios() {
             <span className={styles.nombreUsuario}>{usuario?.nombre}</span>
             <span className={styles.rolBadge}>Administrador</span>
           </div>
-          <button className={styles.botonSalir} onClick={handleLogout}>Salir</button>
+          <MenuUsuario />
         </div>
       </header>
 

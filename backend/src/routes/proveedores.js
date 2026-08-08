@@ -2,17 +2,13 @@ const express = require('express');
 const router = express.Router();
 const ctrl  = require('../controllers/proveedoresController');
 const { verificarToken, soloRol } = require('../middleware/auth');
-const { upload } = require('../middleware/upload');
+const { subirArchivo } = require('../middleware/upload');
 
 router.use(verificarToken);
 
-// Multer con manejo de errores inline
-function uploadSingle(req, res, next) {
-  upload.single('archivo')(req, res, (err) => {
-    if (err) return res.status(400).json({ error: err.message });
-    next();
-  });
-}
+// Valida formato (extensión + contenido real) y escribe en disco. Si el
+// archivo no es PDF/XLSX/DOCX, corta con 400 antes de llegar al controlador.
+const uploadSingle = subirArchivo('archivo');
 
 // Rutas estáticas ANTES que las dinámicas
 router.get('/documentos/:docId/descargar', soloRol('administrador', 'proveedor'), ctrl.descargar);

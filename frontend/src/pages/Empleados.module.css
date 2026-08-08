@@ -67,22 +67,6 @@
   border-radius: 20px;
 }
 
-.botonSalir {
-  padding: 8px 18px;
-  background: none;
-  border: 1.5px solid var(--color-gris);
-  border-radius: var(--radio-sm);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-texto-suave);
-  transition: border-color 0.15s, color 0.15s;
-}
-
-.botonSalir:hover {
-  border-color: var(--color-naranja);
-  color: var(--color-naranja);
-}
-
 /* ── Layout principal ───────────────────────────────────── */
 .contenido {
   max-width: 1200px;

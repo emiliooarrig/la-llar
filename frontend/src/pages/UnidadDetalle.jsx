@@ -3,9 +3,18 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { useAuth } from '../context/AuthContext';
 import LogoInicio from '../components/LogoInicio';
+import MenuUsuario from '../components/MenuUsuario';
 import Footer from '../components/Footer';
 import api from '../services/api';
 import styles from './Proveedores.module.css';
+
+// El backend valida extensión Y contenido real (middleware/upload.js). Este
+// chequeo solo evita el viaje al servidor cuando el archivo ya se ve mal.
+const EXTENSIONES_PERMITIDAS = ['.pdf', '.xlsx', '.docx'];
+
+function extensionValida(nombre) {
+  return EXTENSIONES_PERMITIDAS.some((ext) => nombre.toLowerCase().endsWith(ext));
+}
 
 const ETIQUETA_ROL = { administrador: 'Administrador', gerente: 'Gerente', proveedor: 'Proveedor' };
 
@@ -17,7 +26,8 @@ function formatFecha(iso) {
 function IconoTipoArchivo({ mime }) {
   const es = t => mime?.includes(t);
   if (es('pdf'))   return <span className={`${styles.iconoBadge} ${styles.iconoPDF}`}>PDF</span>;
-  if (es('sheet') || es('excel')) return <span className={`${styles.iconoBadge} ${styles.iconoXLSX}`}>XLS</span>;
+  if (es('sheet') || es('excel')) return <span className={`${styles.iconoBadge} ${styles.iconoXLSX}`}>XLSX</span>;
+  if (es('wordprocessingml')) return <span className={`${styles.iconoBadge} ${styles.iconoOther}`}>DOCX</span>;
   return <span className={`${styles.iconoBadge} ${styles.iconoOther}`}>DOC</span>;
 }
 
@@ -34,7 +44,7 @@ function BadgeEstado({ estado }) {
 export default function UnidadDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { usuario, logout } = useAuth();
+  const { usuario } = useAuth();
   const inputRef = useRef(null);
 
   const [unidad, setUnidad]         = useState(null);
@@ -65,6 +75,16 @@ export default function UnidadDetalle() {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
+
+    if (!extensionValida(file.name)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Formato no permitido',
+        text: 'Solo se aceptan archivos PDF, Excel (.xlsx) y Word (.docx).',
+        confirmButtonColor: '#E8621A',
+      });
+      return;
+    }
 
     setSubiendo(true);
     try {
@@ -198,15 +218,6 @@ export default function UnidadDetalle() {
     }
   }
 
-  async function handleLogout() {
-    const r = await Swal.fire({
-      title: '¿Cerrar sesión?', text: 'Se cerrará tu sesión actual.', icon: 'question',
-      showCancelButton: true, confirmButtonColor: '#E8621A', cancelButtonColor: '#9E9892',
-      confirmButtonText: 'Sí, salir', cancelButtonText: 'Cancelar',
-    });
-    if (r.isConfirmed) { logout(); navigate('/login', { replace: true }); }
-  }
-
   const docs = unidad?.documentos_unidad ?? [];
 
   return (
@@ -223,7 +234,7 @@ export default function UnidadDetalle() {
             <span className={styles.nombreUsuario}>{usuario?.nombre}</span>
             <span className={styles.rolBadge}>{ETIQUETA_ROL[usuario?.rol]}</span>
           </div>
-          <button className={styles.botonSalir} onClick={handleLogout}>Salir</button>
+          <MenuUsuario />
         </div>
       </header>
 
@@ -256,7 +267,7 @@ export default function UnidadDetalle() {
                 <input
                   ref={inputRef}
                   type="file"
-                  accept=".pdf,.xlsx,.xls"
+                  accept=".pdf,.xlsx,.docx"
                   style={{ display: 'none' }}
                   onChange={handleSeleccionArchivo}
                 />

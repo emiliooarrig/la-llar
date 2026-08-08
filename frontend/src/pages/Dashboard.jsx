@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import api from '../services/api';
 import styles from './Dashboard.module.css';
 import LogoInicio from '../components/LogoInicio';
+import MenuUsuario from '../components/MenuUsuario';
 import Footer from '../components/Footer';
 
 /* ── Iconos de módulo (set de línea consistente) ───────── */
@@ -129,8 +130,7 @@ function fechaCorta(iso) {
 }
 
 export default function Dashboard() {
-  const { usuario, logout } = useAuth();
-  const navigate = useNavigate();
+  const { usuario } = useAuth();
   const esAdmin = usuario?.rol === 'administrador';
 
   const [kpis, setKpis] = useState(null);
@@ -155,15 +155,6 @@ export default function Dashboard() {
     }
   }
 
-  async function handleLogout() {
-    const result = await Swal.fire({
-      title: '¿Cerrar sesión?', text: 'Se cerrará tu sesión actual.', icon: 'question',
-      showCancelButton: true, confirmButtonColor: '#E8621A', cancelButtonColor: '#9E9892',
-      confirmButtonText: 'Sí, salir', cancelButtonText: 'Cancelar',
-    });
-    if (result.isConfirmed) { logout(); navigate('/login', { replace: true }); }
-  }
-
   const modulos = MODULOS[usuario?.rol] || [];
 
   return (
@@ -178,7 +169,7 @@ export default function Dashboard() {
             <span className={styles.nombreUsuario}>{usuario?.nombre}</span>
             <span className={styles.rolBadge}>{ETIQUETA_ROL[usuario?.rol]}</span>
           </div>
-          <button className={styles.botonSalir} onClick={handleLogout}>Salir</button>
+          <MenuUsuario />
         </div>
       </header>
 

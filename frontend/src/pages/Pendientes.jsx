@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { useAuth } from '../context/AuthContext';
 import LogoInicio from '../components/LogoInicio';
+import MenuUsuario from '../components/MenuUsuario';
 import Footer from '../components/Footer';
 import api from '../services/api';
 import styles from './Pendientes.module.css';
@@ -39,8 +40,7 @@ function diasEspera(iso) {
 }
 
 export default function Pendientes() {
-  const navigate = useNavigate();
-  const { usuario, logout } = useAuth();
+  const { usuario } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [datos, setDatos]       = useState({ total: 0, proveedores: 0, unidades: 0, documentos: [] });
@@ -132,15 +132,6 @@ export default function Pendientes() {
     }
   }
 
-  async function handleLogout() {
-    const r = await Swal.fire({
-      title: '¿Cerrar sesión?', text: 'Se cerrará tu sesión actual.', icon: 'question',
-      showCancelButton: true, confirmButtonColor: '#E8621A', cancelButtonColor: '#9E9892',
-      confirmButtonText: 'Sí, salir', cancelButtonText: 'Cancelar',
-    });
-    if (r.isConfirmed) { logout(); navigate('/login', { replace: true }); }
-  }
-
   const hayPendientes = datos.total > 0;
 
   return (
@@ -156,7 +147,7 @@ export default function Pendientes() {
             <span className={styles.nombreUsuario}>{usuario?.nombre}</span>
             <span className={styles.rolBadge}>{ETIQUETA_ROL[usuario?.rol]}</span>
           </div>
-          <button className={styles.botonSalir} onClick={handleLogout}>Salir</button>
+          <MenuUsuario />
         </div>
       </header>
 

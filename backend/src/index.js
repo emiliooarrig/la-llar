@@ -19,6 +19,13 @@ const historicosRoutes = require('./routes/historicos');
 
 const app = express();
 const PORT = process.env.PORT;
+
+/* Detrás de un proxy (nginx de Hostinger), req.ip sería la IP del proxy y el
+ * rate limit del login trataría a todo el mundo como una sola IP. TRUST_PROXY
+ * indica cuántos saltos de proxy hay delante; 0 = servidor expuesto directo.
+ * Se usa el número de saltos (no `true`) para que no se pueda falsear la IP
+ * inyectando X-Forwarded-For. */
+app.set('trust proxy', Number(process.env.TRUST_PROXY || 0));
 const prisma = new PrismaClient();
 
 app.use(cors({
@@ -29,7 +36,6 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/empleados', empleadosRoutes);
