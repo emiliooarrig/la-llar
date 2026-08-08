@@ -22,3 +22,6 @@ CREDENCIALES.md
 
 # Pruebas locales (usan la BD con el seed, no van al repo)
 backend/tests/
+
+# Auditorías de seguridad: detallan hallazgos aún sin corregir y el repo es público
+AUDITORIA-SEGURIDAD-*.md
