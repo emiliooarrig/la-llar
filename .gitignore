@@ -3,6 +3,7 @@ node_modules/
 dist/
 checador/cola_pendiente.db
 checador/.venv/
+checador/registrar_manual.py
 __pycache__/
 uploads/*
 !uploads/.gitkeep
@@ -16,8 +17,6 @@ CLAUDE.md
 .agents
 claude.txt
 skills-lock.json
-backend/package-lock.json
-frontend/package-lock.json
 CREDENCIALES.md
 
 # Pruebas locales (usan la BD con el seed, no van al repo)
