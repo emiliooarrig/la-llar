@@ -1,0 +1,85 @@
+/* ─────────────────────────────────────────────────────────────
+   Tokens — La Llar
+   El mundo del producto: una cocina profesional. Fuego (naranja),
+   harina y cerámica (hueso/gris), acero inoxidable (azul frío),
+   hierba fresca (oliva), lámpara de calor (ámbar).
+   Nada de hex sueltos en los componentes: todo baja de aquí.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  /* Fuego — acento único del sistema */
+  --color-naranja: #E8621A;
+  --color-naranja-claro: #F58137;
+  --color-naranja-oscuro: #C44E0E;
+  --tinte-naranja: rgba(232, 98, 26, 0.10);
+  --tinte-naranja-fuerte: rgba(232, 98, 26, 0.16);
+
+  /* Superficies — harina, cerámica, mantel */
+  --color-blanco: #FFFFFF;
+  --color-blanco-hueso: #FAF8F5;
+  --color-gris-claro: #F2F0ED;
+  --color-gris: #D1CEC9;
+  --color-gris-medio: #9E9892;
+
+  /* Cuatro niveles de texto — usar los cuatro */
+  --color-texto: #2D2926;
+  --color-texto-suave: #6B6560;
+  --texto-muted: var(--color-gris-medio);
+  --texto-desactivado: rgba(158, 152, 146, 0.75);
+
+  /* Semánticos */
+  --color-error: #D93025;
+  --tinte-error: rgba(217, 48, 37, 0.10);
+  --tinte-error-fuerte: rgba(217, 48, 37, 0.16);
+  --color-exito: #2E7D32;
+  --tinte-exito: rgba(46, 125, 50, 0.10);
+  --tinte-exito-fuerte: rgba(46, 125, 50, 0.16);
+  --color-ambar: #E8A317;
+  --color-ambar-texto: #9A6700;
+  --tinte-ambar: rgba(232, 163, 23, 0.16);
+  --color-acero: #1565C0;
+  --tinte-acero: rgba(21, 101, 192, 0.10);
+  --tinte-acero-fuerte: rgba(21, 101, 192, 0.16);
+
+  /* Estado documental — un solo origen de verdad */
+  --estado-pendiente: var(--color-ambar-texto);
+  --estado-pendiente-punto: var(--color-ambar);
+  --estado-pendiente-tinte: var(--tinte-ambar);
+  --estado-aprobado: var(--color-exito);
+  --estado-aprobado-tinte: var(--tinte-exito);
+  --estado-rechazado: var(--color-error);
+  --estado-rechazado-tinte: var(--tinte-error);
+
+  /* Bordes — progresión, no binario */
+  --borde-suave: 1px solid var(--color-gris-claro);
+  --borde: 1.5px solid var(--color-gris);
+  --borde-enfasis: 1.5px solid var(--color-gris-medio);
+  --anillo-foco: 0 0 0 3px rgba(232, 98, 26, 0.22);
+
+  /* Profundidad — UNA estrategia: borde + sombra susurrada */
+  --sombra-sm: 0 1px 3px rgba(45, 41, 38, 0.07);
+  --sombra-md: 0 4px 12px rgba(45, 41, 38, 0.09);
+  --sombra-lg: 0 16px 44px rgba(45, 41, 38, 0.16);
+
+  --radio: 10px;
+  --radio-sm: 6px;
+  --radio-lg: 14px;
+  --radio-pildora: 999px;
+
+  /* Espaciado base 4 */
+  --e1: 4px;  --e2: 8px;  --e3: 12px; --e4: 16px;
+  --e5: 20px; --e6: 24px; --e8: 32px; --e10: 40px;
+
+  --alto-barra: 60px;
+  --ancho-rail: 212px;
+  --ancho-contenido: 1200px;
+
+  /* Densidad de tabla — el usuario la cambia desde la barra superior */
+  --fila-y: 11px;
+  --fila-x: 14px;
+}
+
+/* Modo compacto: ~30% más filas a la vista sin tocar la tipografía. */
+:root[data-densidad='compacta'] {
+  --fila-y: 6px;
+  --fila-x: 10px;
+}

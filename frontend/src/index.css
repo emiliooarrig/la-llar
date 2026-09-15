@@ -1,77 +1,8 @@
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-:root {
-  --color-naranja: #E8621A;
-  --color-naranja-claro: #F58137;
-  --color-naranja-oscuro: #C44E0E;
-  --color-blanco: #FFFFFF;
-  --color-blanco-hueso: #FAF8F5;
-  --color-gris-claro: #F2F0ED;
-  --color-gris: #D1CEC9;
-  --color-gris-medio: #9E9892;
-  --color-texto: #2D2926;
-  --color-texto-suave: #6B6560;
-  --color-error: #D93025;
-  --color-exito: #2E7D32;
-  --sombra-sm: 0 1px 3px rgba(0,0,0,0.08);
-  --sombra-md: 0 4px 12px rgba(0,0,0,0.10);
-  --sombra-lg: 0 8px 24px rgba(0,0,0,0.12);
-  --radio: 10px;
-  --radio-sm: 6px;
-  --radio-lg: 16px;
-}
-
-/* Evita que iOS reescale el texto al girar el dispositivo. */
-html {
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
-body {
-  font-family: 'Inter', system-ui, sans-serif;
-  background-color: var(--color-blanco-hueso);
-  color: var(--color-texto);
-  font-size: 15px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  /* Correos y nombres de archivo largos no rompen el layout. */
-  overflow-wrap: break-word;
-}
-
-/* Ningún medio se sale de su contenedor. */
-img, svg, video {
-  max-width: 100%;
-}
-
-a {
-  color: var(--color-naranja);
-  text-decoration: none;
-}
-
-a:hover {
-  color: var(--color-naranja-oscuro);
-}
-
-button {
-  cursor: pointer;
-  font-family: inherit;
-}
-
-input, select, textarea {
-  font-family: inherit;
-}
-
-/* En móvil, Safari/iOS hace zoom automático al enfocar un control cuyo
-   texto mide menos de 16px. Los selectores llevan :not() para ganarle en
-   especificidad a las clases .input/.selectFiltro de los módulos CSS. */
-@media (max-width: 640px) {
-  input:not([type='checkbox']):not([type='radio']),
-  select:not([multiple]),
-  textarea:not([readonly]) {
-    font-size: 16px;
-  }
-}
+/* Hoja de entrada: el sistema completo se carga una sola vez.
+   Las páginas sólo aportan lo que es exclusivamente suyo. */
+@import './styles/tokens.css';
+@import './styles/base.css';
+@import './styles/shell.css';
+@import './styles/controles.css';
+@import './styles/datos.css';
+@import './styles/alertas.css';

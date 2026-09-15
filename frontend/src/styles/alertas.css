@@ -1,0 +1,46 @@
+/* SweetAlert2 sale con su propia estética; aquí se le pone la del sistema
+   para que un diálogo no parezca venir de otra aplicación. */
+.swal-llar {
+  border-radius: var(--radio-lg);
+  border: var(--borde);
+  box-shadow: var(--sombra-lg);
+  padding: var(--e6);
+  font-family: 'Inter', system-ui, sans-serif;
+  max-width: 440px;
+}
+.swal-llar__titulo {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em;
+  color: var(--color-texto) !important;
+  padding: 0 !important;
+}
+.swal-llar__texto {
+  font-size: 13.5px !important;
+  line-height: 1.55;
+  color: var(--color-texto-suave) !important;
+  margin-top: var(--e2) !important;
+  padding: 0 !important;
+}
+.swal-llar__acciones { margin-top: var(--e5) !important; gap: var(--e2); }
+.swal-llar .swal2-icon { margin: 0 auto var(--e4); width: 48px; height: 48px; border-width: 2px; }
+.swal-llar .swal2-icon .swal2-icon-content { font-size: 28px; }
+
+.swal-cinta {
+  border-radius: var(--radio-sm) !important;
+  border: var(--borde);
+  border-left: 3px solid var(--color-exito);
+  box-shadow: var(--sombra-md);
+  padding: var(--e3) var(--e4) !important;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.swal-cinta__titulo {
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  color: var(--color-texto) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.swal-cinta .swal2-icon { width: 20px; height: 20px; min-width: 20px; margin: 0 var(--e3) 0 0; border-width: 2px; }
+.swal-cinta .swal2-icon .swal2-icon-content { font-size: 13px; }
+.swal-cinta .swal2-timer-progress-bar { background: var(--color-gris); }

@@ -1,0 +1,330 @@
+/* ─────────────────────────────────────────────────────────────
+   Shell — barra superior, rail de módulos, lienzo y encabezado
+   Antes esto vivía duplicado en siete módulos CSS distintos.
+   ───────────────────────────────────────────────────────────── */
+.pagina {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-blanco-hueso);
+}
+
+/* ── Barra superior ───────────────────────────────────────── */
+.barra-sup {
+  height: var(--alto-barra);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e4);
+  padding: 0 var(--e6);
+  background: var(--color-blanco);
+  border-bottom: 1px solid var(--color-gris);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.barra-sup__marca { display: flex; align-items: center; gap: var(--e3); min-width: 0; }
+.barra-sup__logo { height: 32px; width: auto; display: block; }
+.barra-sup__nombre {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-texto);
+  white-space: nowrap;
+}
+
+/* Identidad: el cuadro de iniciales lleva el color del rol; no hace
+   falta una píldora extra repitiendo lo mismo. */
+.barra-sup__yo { display: flex; align-items: center; gap: var(--e3); }
+.barra-sup__quien { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; }
+.barra-sup__quien-nombre { font-size: 13.5px; font-weight: 600; color: var(--color-texto); }
+.barra-sup__quien-rol {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.rol-administrador { color: var(--color-naranja-oscuro); }
+.rol-gerente { color: var(--color-acero); }
+.rol-proveedor { color: var(--color-exito); }
+
+/* ── Cuerpo: rail + columna principal ─────────────────────── */
+.cuerpo { display: flex; flex: 1 1 auto; min-height: 0; align-items: stretch; }
+.principal { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+
+/* ── Rail de módulos ──────────────────────────────────────
+   Mismo fondo que el lienzo (un color distinto partiría la
+   pantalla en dos mundos); sólo un borde los separa. */
+.rail {
+  width: var(--ancho-rail);
+  flex-shrink: 0;
+  border-right: 1px solid var(--color-gris);
+  padding: var(--e5) var(--e3);
+  position: sticky;
+  top: var(--alto-barra);
+  align-self: flex-start;
+  max-height: calc(100vh - var(--alto-barra));
+  overflow-y: auto;
+}
+.rail__titulo {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--texto-muted);
+  padding: 0 var(--e3) var(--e2);
+}
+.rail__lista { display: flex; flex-direction: column; gap: 1px; }
+.rail__item {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  padding: 8px var(--e3);
+  border-radius: var(--radio-sm);
+  border-left: 3px solid transparent;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--color-texto-suave);
+  transition: background-color 0.15s, color 0.15s;
+}
+.rail__item:hover { background-color: rgba(45, 41, 38, 0.04); color: var(--color-texto); }
+.rail__item--activo {
+  background-color: var(--tinte-naranja);
+  border-left-color: var(--color-naranja);
+  color: var(--color-naranja-oscuro);
+  font-weight: 600;
+}
+.rail__item--activo:hover { background-color: var(--tinte-naranja); color: var(--color-naranja-oscuro); }
+.rail__item svg { width: 17px; height: 17px; }
+.rail__conteo {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: var(--radio-pildora);
+  background: var(--tinte-ambar);
+  color: var(--color-ambar-texto);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Lienzo ───────────────────────────────────────────────── */
+.contenido {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: var(--ancho-contenido);
+  margin: 0 auto;
+  padding: var(--e8) var(--e8) var(--e10);
+}
+
+/* ── Migas de pan ─────────────────────────────────────────── */
+.migas {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  margin-bottom: var(--e4);
+  font-size: 12.5px;
+  color: var(--texto-muted);
+  flex-wrap: wrap;
+}
+.migas a { color: var(--color-texto-suave); }
+.migas a:hover { color: var(--color-naranja); text-decoration: underline; }
+.migas__sep { color: var(--color-gris); }
+.migas__actual { color: var(--color-texto); font-weight: 500; }
+
+/* ── Encabezado de página ─────────────────────────────────── */
+.encabezado-pagina {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--e5);
+  flex-wrap: wrap;
+  padding-bottom: var(--e5);
+  margin-bottom: var(--e6);
+  border-bottom: var(--borde-suave);
+}
+.encabezado-pagina__titulo {
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-texto);
+}
+.encabezado-pagina__sub {
+  margin-top: 3px;
+  font-size: 13.5px;
+  color: var(--color-texto-suave);
+  max-width: 62ch;
+}
+.encabezado-pagina__acciones { display: flex; align-items: center; gap: var(--e2); flex-wrap: wrap; }
+
+/* ── Secciones ────────────────────────────────────────────── */
+.seccion + .seccion { margin-top: var(--e8); }
+.seccion__titulo {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--texto-muted);
+  margin-bottom: var(--e3);
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 900px) {
+  /* El rail se acuesta bajo la barra y se desliza en horizontal.
+     Sin hamburguesa: los módulos siguen a la vista. */
+  .cuerpo { flex-direction: column; }
+  .rail {
+    width: auto;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-right: none;
+    border-bottom: 1px solid var(--color-gris);
+    padding: var(--e2) var(--e4);
+    background: var(--color-blanco-hueso);
+    z-index: 90;
+  }
+  .rail__titulo { display: none; }
+  .rail__lista { flex-direction: row; gap: var(--e1); }
+  .rail__item {
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    border-radius: var(--radio-sm) var(--radio-sm) 0 0;
+    white-space: nowrap;
+    padding: 7px var(--e3);
+  }
+  .rail__item--activo { border-bottom-color: var(--color-naranja); }
+  .contenido { padding: var(--e6) var(--e4) var(--e8); }
+}
+
+@media (max-width: 640px) {
+  .barra-sup { padding: 0 var(--e4); gap: var(--e2); }
+  .barra-sup__nombre { display: none; }
+  .barra-sup__quien-nombre { display: none; }
+  .encabezado-pagina { align-items: stretch; }
+  .encabezado-pagina__titulo { font-size: 21px; }
+  .contenido { padding: var(--e5) var(--e3) var(--e6); }
+}
+
+/* ── Menú de cuenta ───────────────────────────────────────── */
+.yo { position: relative; }
+.yo__boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px; height: 34px;
+  border: 1.5px solid transparent;
+  border-radius: var(--radio-sm);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.yo__boton:hover { border-color: var(--color-gris); }
+/* El color del cuadro ES el rol: no hace falta una píldora que lo repita. */
+.yo__boton--administrador { background: var(--tinte-naranja); color: var(--color-naranja-oscuro); }
+.yo__boton--gerente { background: var(--tinte-acero); color: var(--color-acero); }
+.yo__boton--proveedor { background: var(--tinte-exito); color: var(--color-exito); }
+
+.yo__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 248px;
+  background: var(--color-blanco);
+  border: var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-md);
+  padding: var(--e2);
+  z-index: 150;
+}
+.yo__cabecera {
+  padding: var(--e2) var(--e3) var(--e3);
+  border-bottom: var(--borde-suave);
+  margin-bottom: var(--e2);
+}
+.yo__cabecera-nombre { display: block; font-size: 13.5px; font-weight: 600; color: var(--color-texto); }
+.yo__cabecera-correo { display: block; font-size: 12px; color: var(--texto-muted); margin-top: 1px; }
+.yo__grupo { display: flex; flex-direction: column; gap: 1px; }
+.yo__grupo + .yo__grupo { margin-top: var(--e2); padding-top: var(--e2); border-top: var(--borde-suave); }
+.yo__item {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  width: 100%;
+  padding: 8px var(--e3);
+  border: none;
+  border-radius: var(--radio-sm);
+  background: none;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--color-texto);
+  text-align: left;
+  transition: background-color 0.15s, color 0.15s;
+}
+.yo__item:hover { background: var(--color-gris-claro); }
+.yo__item svg { width: 16px; height: 16px; color: var(--texto-muted); }
+.yo__item--salir { color: var(--color-error); }
+.yo__item--salir:hover { background: var(--tinte-error); }
+.yo__item--salir svg { color: var(--color-error); }
+
+/* Interruptor de densidad dentro del menú. */
+.yo__densidad { display: flex; align-items: center; gap: var(--e2); padding: var(--e2) var(--e3); }
+.yo__densidad-label { font-size: 12.5px; color: var(--color-texto-suave); }
+.yo__segmento {
+  display: flex;
+  margin-left: auto;
+  border: 1px solid var(--color-gris);
+  border-radius: var(--radio-sm);
+  overflow: hidden;
+}
+.yo__segmento-btn {
+  border: none;
+  background: var(--color-blanco);
+  padding: 4px 9px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+  transition: background-color 0.15s, color 0.15s;
+}
+.yo__segmento-btn + .yo__segmento-btn { border-left: 1px solid var(--color-gris); }
+.yo__segmento-btn[aria-pressed='true'] { background: var(--color-texto); color: var(--color-blanco); }
+
+/* ── Pie ──────────────────────────────────────────────────── */
+.pie-app {
+  margin-top: auto;
+  padding: var(--e5) var(--e8);
+  position: relative;
+}
+/* Borde de corte de la comanda. */
+.pie-app::before {
+  content: '';
+  position: absolute;
+  top: 0; left: var(--e8); right: var(--e8);
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--color-gris) 0 7px,
+    transparent 7px 15px
+  );
+}
+.pie-app__interior {
+  max-width: var(--ancho-contenido);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e4);
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--texto-muted);
+}
+.pie-app__marca strong { color: var(--color-texto-suave); font-weight: 700; }
+
+@media (max-width: 640px) {
+  .pie-app { padding: var(--e4) var(--e3); }
+  .pie-app::before { left: var(--e3); right: var(--e3); }
+  .pie-app__interior { justify-content: center; text-align: center; font-size: 11.5px; }
+}

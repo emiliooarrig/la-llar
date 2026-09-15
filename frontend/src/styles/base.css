@@ -1,0 +1,100 @@
+/* ─────────────────────────────────────────────────────────────
+   Base — reset, tipografía y comportamientos globales
+   ───────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--color-blanco-hueso);
+  color: var(--color-texto);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-wrap: break-word;
+}
+
+img, svg, video { max-width: 100%; }
+svg { flex-shrink: 0; }
+
+a { color: var(--color-naranja); text-decoration: none; }
+a:hover { color: var(--color-naranja-oscuro); }
+
+button { cursor: pointer; font-family: inherit; color: inherit; }
+button:disabled { cursor: not-allowed; }
+input, select, textarea { font-family: inherit; }
+
+/* Todo dato numérico se alinea en columna. */
+.num { font-variant-numeric: tabular-nums; }
+
+/* ── Foco visible global ──────────────────────────────────────
+   Antes sólo cinco reglas sueltas tenían anillo de foco: navegar
+   con Tab era imposible. Esto lo cubre de una vez, y sólo aparece
+   con teclado (nunca al hacer clic con el ratón). */
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid var(--color-naranja);
+  outline-offset: 2px;
+  border-radius: var(--radio-sm);
+}
+
+/* ── Salto de navegación ───────────────────────────────────── */
+.saltar-a-contenido {
+  position: absolute;
+  left: -9999px;
+  top: var(--e2);
+  z-index: 300;
+  background: var(--color-blanco);
+  border: var(--borde);
+  border-radius: var(--radio-sm);
+  padding: var(--e2) var(--e4);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-texto);
+}
+.saltar-a-contenido:focus-visible { left: var(--e4); }
+
+/* ── Sólo para lectores de pantalla ────────────────────────── */
+.solo-lectores {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* iOS hace zoom al enfocar un control con texto < 16px. */
+@media (max-width: 640px) {
+  input:not([type='checkbox']):not([type='radio']),
+  select:not([multiple]),
+  textarea:not([readonly]) { font-size: 16px; }
+}
+
+/* ── Movimiento reducido ───────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Impresión ─────────────────────────────────────────────
+   En una empresa alguien va a imprimir la tabla de asistencias.
+   Se va el cromo de navegación y queda el dato. */
+@media print {
+  :root { --fila-y: 5px; --fila-x: 8px; }
+  body { background: #fff; font-size: 11px; }
+  .no-imprimir,
+  .barra-sup, .rail, .pie-app,
+  .barra-filtros, .encabezado-pagina__acciones,
+  .paginacion, .col-acciones, .th-acciones { display: none !important; }
+  .pagina, .cuerpo, .principal { display: block; }
+  .contenido { max-width: none; padding: 0; }
+  .tabla-marco { border: none; box-shadow: none; }
+  .tabla { font-size: 10.5px; }
+  .tabla th { background: transparent; border-bottom: 1px solid #999; }
+  .tabla td { border-bottom: 1px solid #ddd; }
+  .tabla tr { break-inside: avoid; }
+  a { color: inherit; text-decoration: none; }
+}
