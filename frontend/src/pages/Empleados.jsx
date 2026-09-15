@@ -1,173 +1,96 @@
-import { useState, useEffect, useMemo } from 'react';
-import Swal from 'sweetalert2';
-import { useAuth } from '../context/AuthContext';
-import LogoInicio from '../components/LogoInicio';
-import MenuUsuario from '../components/MenuUsuario';
-import Footer from '../components/Footer';
+import { useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
+import Layout from '../components/Layout';
+import TablaDatos from '../components/TablaDatos';
+import BarraFiltros from '../components/BarraFiltros';
+import Modal from '../components/Modal';
+import Campo from '../components/Campo';
+import Insignia from '../components/Insignia';
+import { IconoMas, IconoLapiz, IconoOjo, IconoOjoOff } from '../components/Iconos';
+import { useFiltrosURL } from '../hooks/useFiltrosURL';
+import { formatFecha, normalizar } from '../lib/formato';
+import { confirmar, toast, avisoError } from '../lib/alertas';
 import styles from './Empleados.module.css';
 
-/* ── Iconos SVG inline ─────────────────────────────────── */
-function IconoMas() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  );
-}
+const FORM_VACIO = { nombre: '', lector_uid: '', sucursal_id: '', fecha_nacimiento: '', rfc: '', curp: '' };
+const FILTROS_BASE = { q: '', estado: 'todos', unidad: '' };
 
-function IconoLapiz() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-    </svg>
-  );
-}
-
-function IconoOjo() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function IconoOjoOff() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-      <line x1="1" y1="1" x2="23" y2="23" />
-    </svg>
-  );
-}
-
-function IconoBusqueda() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  );
-}
-
-function IconoCerrar() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
-
-/* ── Helpers ────────────────────────────────────────────── */
-function formatFecha(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('es-MX', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
-
-// La fecha de nacimiento es un campo solo-fecha (@db.Date). Formateamos a
-// partir de la porción 'YYYY-MM-DD' del ISO para evitar el corrimiento de
-// día que provocaría interpretar la medianoche UTC en la zona local.
+/* La fecha de nacimiento es un campo sólo-fecha (@db.Date): se formatea
+   desde la porción 'YYYY-MM-DD' para evitar el corrimiento de día que
+   provoca interpretar la medianoche UTC en la zona local. */
 function formatFechaSolo(iso) {
   if (!iso) return '—';
   const [y, m, d] = iso.slice(0, 10).split('-');
   return `${d}/${m}/${y}`;
 }
+const fechaInput = iso => (iso ? iso.slice(0, 10) : '');
 
-// Valor 'YYYY-MM-DD' para el <input type="date">.
-function fechaInput(iso) {
-  return iso ? iso.slice(0, 10) : '';
+function ordenar(a, b) {
+  return Number(b.activo) - Number(a.activo) || a.nombre.localeCompare(b.nombre, 'es');
 }
 
-const FORM_VACIO = { nombre: '', lector_uid: '', sucursal_id: '', fecha_nacimiento: '', rfc: '', curp: '' };
+function validar(form) {
+  const e = {};
+  if (!form.nombre.trim()) e.nombre = 'El nombre es obligatorio.';
+  if (!form.lector_uid.trim()) e.lector_uid = 'El UID del checador es obligatorio.';
+  if (!form.sucursal_id) e.sucursal_id = 'Asigna una unidad.';
+  if (form.rfc && form.rfc.trim().length < 12) e.rfc = 'Un RFC tiene 12 o 13 caracteres.';
+  if (form.curp && form.curp.trim().length !== 18) e.curp = 'La CURP tiene 18 caracteres.';
+  return e;
+}
 
-const ETIQUETA_ROL = { administrador: 'Administrador', gerente: 'Gerente', proveedor: 'Proveedor' };
-
-/* ── Componente principal ───────────────────────────────── */
 export default function Empleados() {
-  const { usuario } = useAuth();
+  const { filtros, setFiltro, limpiar, hayFiltros, clave } = useFiltrosURL(FILTROS_BASE);
 
-  // Datos
-  const [empleados, setEmpleados]   = useState([]);
+  const [empleados, setEmpleados] = useState([]);
   const [sucursales, setSucursales] = useState([]);
-  const [cargando, setCargando]     = useState(true);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Filtros
-  const [busqueda, setBusqueda]           = useState('');
-  const [filtroEstado, setFiltroEstado]   = useState('todos');
-  const [filtroSucursal, setFiltroSucursal] = useState('');
+  const [modal, setModal] = useState(null);
+  const [form, setForm] = useState(FORM_VACIO);
+  const [errores, setErrores] = useState({});
+  const [guardando, setGuardando] = useState(false);
 
-  // Modal
-  const [modalAbierto, setModalAbierto]             = useState(false);
-  const [modoModal, setModoModal]                   = useState('crear');
-  const [empleadoEditando, setEmpleadoEditando]     = useState(null);
-  const [form, setForm]                             = useState(FORM_VACIO);
-  const [guardando, setGuardando]                   = useState(false);
+  useEffect(() => { cargar(); }, []);
 
-  useEffect(() => {
-    cargarDatos();
-  }, []);
-
-  async function cargarDatos() {
+  async function cargar() {
     setCargando(true);
+    setError(null);
     try {
-      const [resE, resS] = await Promise.all([
-        api.get('/empleados'),
-        api.get('/sucursales'),
-      ]);
-      setEmpleados(resE.data);
-      setSucursales(resS.data);
+      const [e, s] = await Promise.all([api.get('/empleados'), api.get('/sucursales')]);
+      setEmpleados([...e.data].sort(ordenar));
+      setSucursales(s.data);
     } catch {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error al cargar',
-        text: 'No se pudieron obtener los datos. Verifica la conexión.',
-        confirmButtonColor: '#E8621A',
-      });
+      setError('No se pudo obtener la plantilla. Revisa tu conexión.');
     } finally {
       setCargando(false);
     }
   }
 
-  /* ── Filtrado reactivo ─────────────────────────────── */
-  const empleadosFiltrados = useMemo(() => {
-    const q = busqueda.toLowerCase();
+  const filtrados = useMemo(() => {
+    const q = normalizar(filtros.q);
     return empleados.filter(emp => {
-      const coincideTexto =
-        q === '' ||
-        emp.nombre.toLowerCase().includes(q) ||
-        emp.lector_uid.toLowerCase().includes(q) ||
-        (emp.rfc && emp.rfc.toLowerCase().includes(q)) ||
-        (emp.curp && emp.curp.toLowerCase().includes(q));
-      const coincideEstado =
-        filtroEstado === 'todos' ||
-        (filtroEstado === 'activos' && emp.activo) ||
-        (filtroEstado === 'inactivos' && !emp.activo);
-      const coincideSucursal =
-        filtroSucursal === '' || emp.sucursal_id === parseInt(filtroSucursal);
-      return coincideTexto && coincideEstado && coincideSucursal;
+      const texto = !q
+        || normalizar(emp.nombre).includes(q)
+        || normalizar(emp.lector_uid).includes(q)
+        || normalizar(emp.rfc || '').includes(q)
+        || normalizar(emp.curp || '').includes(q);
+      const estado = filtros.estado === 'todos'
+        || (filtros.estado === 'activos' && emp.activo)
+        || (filtros.estado === 'inactivos' && !emp.activo);
+      const unidad = !filtros.unidad || emp.sucursal_id === Number(filtros.unidad);
+      return texto && estado && unidad;
     });
-  }, [empleados, busqueda, filtroEstado, filtroSucursal]);
+  }, [empleados, filtros]);
 
-  /* ── Abrir modal ───────────────────────────────────── */
   function abrirCrear() {
-    setModoModal('crear');
-    setEmpleadoEditando(null);
     setForm(FORM_VACIO);
-    setModalAbierto(true);
+    setErrores({});
+    setModal({ modo: 'crear', editando: null });
   }
 
   function abrirEditar(emp) {
-    setModoModal('editar');
-    setEmpleadoEditando(emp);
     setForm({
       nombre: emp.nombre,
       lector_uid: emp.lector_uid,
@@ -176,387 +99,291 @@ export default function Empleados() {
       rfc: emp.rfc ?? '',
       curp: emp.curp ?? '',
     });
-    setModalAbierto(true);
+    setErrores({});
+    setModal({ modo: 'editar', editando: emp });
   }
 
-  function cerrarModal() {
-    if (guardando) return;
-    setModalAbierto(false);
-    setEmpleadoEditando(null);
-    setForm(FORM_VACIO);
+  function cambiar(campo, valor) {
+    setForm(p => ({ ...p, [campo]: valor }));
+    if (errores[campo]) setErrores(p => ({ ...p, [campo]: undefined }));
   }
 
-  /* ── Guardar (crear o editar) ──────────────────────── */
-  async function handleGuardar() {
-    const { nombre, lector_uid, sucursal_id } = form;
-    if (!nombre.trim() || !lector_uid.trim() || !sucursal_id) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Campos incompletos',
-        text: 'Completa todos los campos requeridos.',
-        confirmButtonColor: '#E8621A',
-      });
-      return;
-    }
+  async function guardar(e) {
+    e.preventDefault();
+    const fallos = validar(form);
+    setErrores(fallos);
+    if (Object.keys(fallos).length > 0) return;
 
-    setGuardando(true);
     const payload = {
-      nombre: nombre.trim(),
-      lector_uid: lector_uid.trim(),
-      sucursal_id,
+      nombre: form.nombre.trim(),
+      lector_uid: form.lector_uid.trim(),
+      sucursal_id: form.sucursal_id,
       fecha_nacimiento: form.fecha_nacimiento || null,
       rfc: form.rfc.trim().toUpperCase() || null,
       curp: form.curp.trim().toUpperCase() || null,
     };
 
+    setGuardando(true);
     try {
-      if (modoModal === 'crear') {
-        const res = await api.post('/empleados', payload);
-        setEmpleados(prev =>
-          [res.data, ...prev].sort((a, b) =>
-            Number(b.activo) - Number(a.activo) || a.nombre.localeCompare(b.nombre)
-          )
-        );
+      if (modal.modo === 'crear') {
+        const { data } = await api.post('/empleados', payload);
+        setEmpleados(prev => [data, ...prev].sort(ordenar));
       } else {
-        const res = await api.put(`/empleados/${empleadoEditando.id}`, payload);
-        setEmpleados(prev => prev.map(e => (e.id === res.data.id ? res.data : e)));
+        const { data } = await api.put(`/empleados/${modal.editando.id}`, payload);
+        setEmpleados(prev => prev.map(x => (x.id === data.id ? data : x)).sort(ordenar));
       }
-      cerrarModal();
-      Swal.fire({
-        icon: 'success',
-        title: modoModal === 'crear' ? 'Empleado creado' : 'Cambios guardados',
-        timer: 1400,
-        showConfirmButton: false,
-        timerProgressBar: true,
-      });
-    } catch (e) {
-      const msg = e.response?.data?.error || 'Ocurrió un error al guardar.';
-      Swal.fire({ icon: 'error', title: 'Error', text: msg, confirmButtonColor: '#E8621A' });
+      setModal(null);
+      toast(modal.modo === 'crear' ? 'Empleado dado de alta' : 'Cambios guardados');
+    } catch (err) {
+      const mensaje = err.response?.data?.error || 'Ocurrió un error al guardar.';
+      /* El choque típico es un `lector_uid` ya usado en esa unidad. */
+      if (/uid|lector/i.test(mensaje)) setErrores({ lector_uid: mensaje });
+      else await avisoError(mensaje);
     } finally {
       setGuardando(false);
     }
   }
 
-  /* ── Toggle activo ─────────────────────────────────── */
-  async function handleToggle(emp) {
-    const accion = emp.activo ? 'desactivar' : 'activar';
-    const result = await Swal.fire({
-      title: `¿${emp.activo ? 'Desactivar' : 'Activar'} empleado?`,
-      text: `${emp.nombre} será ${emp.activo ? 'dado de baja' : 'reactivado'} en el sistema.`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: emp.activo ? '#D93025' : '#2E7D32',
-      cancelButtonColor: '#9E9892',
-      confirmButtonText: `Sí, ${accion}`,
-      cancelButtonText: 'Cancelar',
+  /* Dar de baja saca a la persona de las listas de asistencia: se confirma. */
+  async function alternarActivo(emp) {
+    const ok = await confirmar({
+      titulo: emp.activo ? '¿Dar de baja al empleado?' : '¿Reincorporar al empleado?',
+      texto: emp.activo
+        ? `${emp.nombre} dejará de aparecer en las listas de asistencia. Su historial se conserva.`
+        : `${emp.nombre} volverá a la plantilla activa de su unidad.`,
+      confirmar: emp.activo ? 'Dar de baja' : 'Reincorporar',
+      destructivo: emp.activo,
     });
-    if (!result.isConfirmed) return;
+    if (!ok) return;
 
     try {
-      const res = await api.patch(`/empleados/${emp.id}/activo`);
-      setEmpleados(prev => prev.map(e => (e.id === res.data.id ? res.data : e)));
-      Swal.fire({
-        icon: 'success',
-        title: `Empleado ${emp.activo ? 'desactivado' : 'activado'}`,
-        timer: 1200,
-        showConfirmButton: false,
-        timerProgressBar: true,
-      });
+      const { data } = await api.patch(`/empleados/${emp.id}/activo`);
+      setEmpleados(prev => prev.map(x => (x.id === data.id ? data : x)).sort(ordenar));
+      toast(emp.activo ? 'Empleado dado de baja' : 'Empleado reincorporado');
     } catch {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'No se pudo cambiar el estado del empleado.',
-        confirmButtonColor: '#E8621A',
-      });
+      await avisoError('No se pudo cambiar el estado del empleado.');
     }
   }
 
-  /* ── Render ────────────────────────────────────────── */
-  return (
-    <div className={styles.pagina}>
-
-      {/* Header */}
-      <header className={styles.header}>
-        <div className={styles.marca}>
-          <LogoInicio className={styles.logoSmall} />
-          <span className={styles.appNombre}>Sistema de Gestión</span>
-        </div>
-        <div className={styles.usuario}>
-          <div className={styles.infoUsuario}>
-            <span className={styles.nombreUsuario}>{usuario?.nombre}</span>
-            <span className={styles.rolBadge}>{ETIQUETA_ROL[usuario?.rol]}</span>
-          </div>
-          <MenuUsuario />
-        </div>
-      </header>
-
-      {/* Contenido */}
-      <main className={styles.contenido}>
-
-        {/* Encabezado de página */}
-        <div className={styles.paginaHeader}>
-          <div>
-            <h1 className={styles.tituloPagina}>Empleados</h1>
-            <p className={styles.subtituloPagina}>Alta, edición y baja de empleados del sistema</p>
-          </div>
-          <button className={styles.botonCrear} onClick={abrirCrear}>
-            <IconoMas />
-            Nuevo empleado
+  const columnas = [
+    {
+      clave: 'nombre',
+      titulo: 'Empleado',
+      orden: e => e.nombre,
+      clase: 'celda-elastica',
+      render: e => (
+        <span className="apilado">
+          <span className={styles.nombreEmpleado}>{e.nombre}</span>
+          <span className={`mono mono--chip ${styles.uid}`} title="Identificador en el checador">
+            {e.lector_uid}
+          </span>
+        </span>
+      ),
+    },
+    {
+      clave: 'sucursal',
+      titulo: 'Unidad',
+      orden: e => e.sucursal?.nombre || '',
+      render: e => e.sucursal?.nombre ?? '—',
+    },
+    {
+      clave: 'identificacion',
+      titulo: 'RFC / CURP',
+      render: e => (
+        <span className={styles.identificacion}>
+          <span className="mono">{e.rfc || <span className={styles.identificacionVacia}>Sin RFC</span>}</span>
+          <span className="mono apilado__sec">{e.curp || <span className={styles.identificacionVacia}>Sin CURP</span>}</span>
+        </span>
+      ),
+    },
+    {
+      clave: 'fecha_nacimiento',
+      titulo: 'Nacimiento',
+      orden: e => e.fecha_nacimiento,
+      clase: 'col-fecha',
+      render: e => formatFechaSolo(e.fecha_nacimiento),
+    },
+    {
+      clave: 'activo',
+      titulo: 'Estado',
+      orden: e => Number(e.activo),
+      render: e => <Insignia tono={e.activo ? 'exito' : 'neutro'}>{e.activo ? 'Activo' : 'Baja'}</Insignia>,
+    },
+    {
+      clave: 'creado_en',
+      titulo: 'Alta',
+      orden: e => e.creado_en,
+      clase: 'col-fecha',
+      render: e => formatFecha(e.creado_en),
+    },
+    {
+      clave: 'acciones',
+      titulo: 'Acciones',
+      thClase: 'th-acciones',
+      clase: 'col-acciones',
+      render: e => (
+        <span className="acciones-fila">
+          <button
+            type="button" className="btn-icono tono-naranja" onClick={() => abrirEditar(e)}
+            title="Editar empleado" aria-label={`Editar a ${e.nombre}`}
+          >
+            <IconoLapiz />
           </button>
-        </div>
-
-        {/* Filtros */}
-        <div className={styles.filtros}>
-          <div className={styles.campoBusqueda}>
-            <span className={styles.iconoBusqueda}>
-              <IconoBusqueda />
-            </span>
-            <input
-              type="text"
-              className={styles.inputBusqueda}
-              placeholder="Buscar por nombre, UID, RFC o CURP..."
-              value={busqueda}
-              onChange={e => setBusqueda(e.target.value)}
-            />
-          </div>
-
-          <select
-            className={styles.selectFiltro}
-            value={filtroEstado}
-            onChange={e => setFiltroEstado(e.target.value)}
+          <button
+            type="button"
+            className={`btn-icono ${e.activo ? 'tono-error' : 'tono-exito'}`}
+            onClick={() => alternarActivo(e)}
+            title={e.activo ? 'Dar de baja' : 'Reincorporar'}
+            aria-label={`${e.activo ? 'Dar de baja a' : 'Reincorporar a'} ${e.nombre}`}
           >
-            <option value="todos">Todos los estados</option>
-            <option value="activos">Solo activos</option>
-            <option value="inactivos">Solo inactivos</option>
-          </select>
+            {e.activo ? <IconoOjoOff /> : <IconoOjo />}
+          </button>
+        </span>
+      ),
+    },
+  ];
 
-          <select
-            className={styles.selectFiltro}
-            value={filtroSucursal}
-            onChange={e => setFiltroSucursal(e.target.value)}
-          >
-            <option value="">Todas las sucursales</option>
-            {sucursales.map(s => (
-              <option key={s.id} value={s.id}>{s.nombre}</option>
-            ))}
-          </select>
-        </div>
+  const modo = modal?.modo;
 
-        {/* Tabla */}
-        <div className={styles.tablaWrapper}>
-          <table className={styles.tabla}>
-            <thead>
-              <tr>
-                <th className={styles.colId}>#</th>
-                <th>Nombre</th>
-                <th>UID Lector</th>
-                <th>Nacimiento</th>
-                <th>RFC</th>
-                <th>CURP</th>
-                <th>Sucursal</th>
-                <th>Estado</th>
-                <th>Registrado</th>
-                <th className={styles.thAcciones}>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cargando ? (
-                <tr>
-                  <td colSpan="10" className={styles.estadoTabla}>
-                    <div className={styles.cargandoSpinner} />
-                    Cargando empleados...
-                  </td>
-                </tr>
-              ) : empleadosFiltrados.length === 0 ? (
-                <tr>
-                  <td colSpan="10" className={styles.estadoTabla}>
-                    No se encontraron empleados con los filtros aplicados.
-                  </td>
-                </tr>
-              ) : (
-                empleadosFiltrados.map(emp => (
-                  <tr key={emp.id} className={!emp.activo ? styles.filaInactiva : ''}>
-                    <td className={styles.colId}>{emp.id}</td>
-                    <td className={styles.colNombre}>{emp.nombre}</td>
-                    <td>
-                      <span className={styles.colUid}>{emp.lector_uid}</span>
-                    </td>
-                    <td className={styles.colFecha}>{formatFechaSolo(emp.fecha_nacimiento)}</td>
-                    <td><span className={styles.colUid}>{emp.rfc ?? '—'}</span></td>
-                    <td><span className={styles.colUid}>{emp.curp ?? '—'}</span></td>
-                    <td>{emp.sucursal?.nombre ?? '—'}</td>
-                    <td>
-                      <span className={emp.activo ? styles.badgeActivo : styles.badgeInactivo}>
-                        {emp.activo ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </td>
-                    <td className={styles.colFecha}>{formatFecha(emp.creado_en)}</td>
-                    <td className={styles.colAcciones}>
-                      <div className={styles.acciones}>
-                        <button
-                          className={styles.btnEditar}
-                          onClick={() => abrirEditar(emp)}
-                          title="Editar empleado"
-                        >
-                          <IconoLapiz />
-                        </button>
-                        <button
-                          className={emp.activo ? styles.btnDesactivar : styles.btnActivar}
-                          onClick={() => handleToggle(emp)}
-                          title={emp.activo ? 'Desactivar empleado' : 'Activar empleado'}
-                        >
-                          {emp.activo ? <IconoOjoOff /> : <IconoOjo />}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+  return (
+    <Layout
+      titulo="Empleados"
+      subtitulo="La plantilla que registra entradas y salidas en los checadores."
+      migas={[{ etiqueta: 'Empleados' }]}
+      acciones={
+        <button type="button" className="btn btn--primario" onClick={abrirCrear}>
+          <IconoMas /> Nuevo empleado
+        </button>
+      }
+    >
+      <BarraFiltros
+        busqueda={{
+          valor: filtros.q,
+          onChange: v => setFiltro('q', v),
+          placeholder: 'Buscar por nombre, UID, RFC o CURP…',
+        }}
+        campos={[
+          {
+            etiqueta: 'Unidad',
+            valor: filtros.unidad,
+            onChange: v => setFiltro('unidad', v),
+            opciones: [{ valor: '', texto: 'Todas las unidades' },
+              ...sucursales.map(s => ({ valor: String(s.id), texto: s.nombre }))],
+          },
+          {
+            etiqueta: 'Estado',
+            valor: filtros.estado,
+            onChange: v => setFiltro('estado', v),
+            opciones: [
+              { valor: 'todos', texto: 'Todos' },
+              { valor: 'activos', texto: 'Activos' },
+              { valor: 'inactivos', texto: 'Dados de baja' },
+            ],
+          },
+        ]}
+        onLimpiar={hayFiltros ? limpiar : null}
+      />
 
-          {!cargando && empleados.length > 0 && (
-            <p className={styles.pieTabla}>
-              Mostrando{' '}
-              <strong>{empleadosFiltrados.length}</strong>{' '}
-              de{' '}
-              <strong>{empleados.length}</strong>{' '}
-              empleados
-            </p>
-          )}
-        </div>
-      </main>
+      <TablaDatos
+        columnas={columnas}
+        filas={filtrados}
+        cargando={cargando}
+        error={error}
+        onReintentar={cargar}
+        claseFila={e => (e.activo ? undefined : 'fila-inactiva')}
+        etiqueta="empleados"
+        totalSinFiltrar={empleados.length}
+        claveFiltros={clave}
+        vacio={{
+          titulo: hayFiltros ? 'Ningún empleado coincide' : 'La plantilla está vacía',
+          texto: hayFiltros
+            ? 'Prueba con otro término o limpia los filtros.'
+            : 'Da de alta al primer empleado para que el checador pueda reconocerlo.',
+        }}
+      />
 
-      <Footer />
-
-      {/* Modal crear / editar */}
-      {modalAbierto && (
-        <div
-          className={styles.overlay}
-          onMouseDown={e => e.target === e.currentTarget && cerrarModal()}
-        >
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2 className={styles.modalTitulo}>
-                {modoModal === 'crear' ? 'Nuevo empleado' : 'Editar empleado'}
-              </h2>
-              <button
-                className={styles.modalCerrar}
-                onClick={cerrarModal}
-                aria-label="Cerrar"
-              >
-                <IconoCerrar />
-              </button>
-            </div>
-
-            <div className={styles.modalCuerpo}>
-              <div className={styles.campo}>
-                <label className={styles.etiqueta}>Nombre completo *</label>
-                <input
-                  className={styles.input}
-                  type="text"
-                  placeholder="Ej. Juan Pérez López"
-                  value={form.nombre}
-                  onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))}
-                  disabled={guardando}
-                  autoFocus
-                />
-              </div>
-
-              <div className={styles.campo}>
-                <label className={styles.etiqueta}>UID del lector *</label>
-                <input
-                  className={styles.input}
-                  type="text"
-                  placeholder="Ej. 13"
-                  value={form.lector_uid}
-                  onChange={e => setForm(p => ({ ...p, lector_uid: e.target.value }))}
-                  disabled={guardando}
-                />
-                <span className={styles.inputHint}>
-                  Debe coincidir exactamente con el ID de usuario configurado en el
-                  checador (normalmente numérico). Único dentro de cada sucursal.
-                </span>
-              </div>
-
-              <div className={styles.campo}>
-                <label className={styles.etiqueta}>Sucursal *</label>
-                <select
-                  className={styles.input}
-                  value={form.sucursal_id}
-                  onChange={e => setForm(p => ({ ...p, sucursal_id: e.target.value }))}
-                  disabled={guardando}
-                >
-                  <option value="">— Seleccionar sucursal —</option>
-                  {sucursales.map(s => (
-                    <option key={s.id} value={s.id}>{s.nombre}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.campo}>
-                <label className={styles.etiqueta}>Fecha de nacimiento</label>
-                <input
-                  className={styles.input}
-                  type="date"
-                  value={form.fecha_nacimiento}
-                  onChange={e => setForm(p => ({ ...p, fecha_nacimiento: e.target.value }))}
-                  disabled={guardando}
-                  max={new Date().toISOString().slice(0, 10)}
-                />
-              </div>
-
-              <div className={styles.campo}>
-                <label className={styles.etiqueta}>RFC</label>
-                <input
-                  className={styles.input}
-                  type="text"
-                  placeholder="Ej. PELJ850312H45"
-                  value={form.rfc}
-                  onChange={e => setForm(p => ({ ...p, rfc: e.target.value.toUpperCase() }))}
-                  disabled={guardando}
-                  maxLength={13}
-                />
-                <span className={styles.inputHint}>RFC de persona física (13 caracteres).</span>
-              </div>
-
-              <div className={styles.campo}>
-                <label className={styles.etiqueta}>CURP</label>
-                <input
-                  className={styles.input}
-                  type="text"
-                  placeholder="Ej. PELJ850312HDFRPN08"
-                  value={form.curp}
-                  onChange={e => setForm(p => ({ ...p, curp: e.target.value.toUpperCase() }))}
-                  disabled={guardando}
-                  maxLength={18}
-                />
-                <span className={styles.inputHint}>Clave Única de Registro de Población (18 caracteres).</span>
-              </div>
-            </div>
-
-            <div className={styles.modalPie}>
-              <button
-                className={styles.btnCancelar}
-                onClick={cerrarModal}
-                disabled={guardando}
-              >
+      {modal && (
+        <Modal
+          titulo={modo === 'crear' ? 'Nuevo empleado' : 'Editar empleado'}
+          subtitulo={modo === 'editar' ? modal.editando.nombre : undefined}
+          onCerrar={() => setModal(null)}
+          bloqueado={guardando}
+          pie={
+            <>
+              <button type="button" className="btn btn--neutro" onClick={() => setModal(null)} disabled={guardando}>
                 Cancelar
               </button>
-              <button
-                className={styles.btnGuardar}
-                onClick={handleGuardar}
-                disabled={guardando}
-              >
-                {guardando
-                  ? <span className={styles.spinnerBtn} />
-                  : modoModal === 'crear' ? 'Crear empleado' : 'Guardar cambios'}
+              <button type="submit" form="form-empleado" className="btn btn--primario" disabled={guardando}>
+                {guardando && <span className="spinner" />}
+                {modo === 'crear' ? 'Dar de alta' : 'Guardar cambios'}
               </button>
+            </>
+          }
+        >
+          <form id="form-empleado" onSubmit={guardar} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 'var(--e4)' }}>
+            <Campo etiqueta="Nombre completo" id="e-nombre" error={errores.nombre}>
+              <input
+                id="e-nombre" className={`control${errores.nombre ? ' control--invalido' : ''}`}
+                type="text" placeholder="Ej. Ana Beltrán Cruz"
+                value={form.nombre} onChange={ev => cambiar('nombre', ev.target.value)}
+                disabled={guardando} data-foco-inicial
+              />
+            </Campo>
+
+            <div className={styles.filaDoble}>
+              <Campo
+                etiqueta="UID del checador" id="e-uid" error={errores.lector_uid}
+                pista="Único dentro de la unidad."
+              >
+                <input
+                  id="e-uid" className={`control mono${errores.lector_uid ? ' control--invalido' : ''}`}
+                  type="text" placeholder="Ej. 0042"
+                  value={form.lector_uid} onChange={ev => cambiar('lector_uid', ev.target.value)}
+                  disabled={guardando}
+                />
+              </Campo>
+
+              <Campo etiqueta="Unidad" id="e-unidad" error={errores.sucursal_id}>
+                <select
+                  id="e-unidad" className={`control${errores.sucursal_id ? ' control--invalido' : ''}`}
+                  value={form.sucursal_id} onChange={ev => cambiar('sucursal_id', ev.target.value)}
+                  disabled={guardando}
+                >
+                  <option value="">Seleccionar unidad…</option>
+                  {sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                </select>
+              </Campo>
             </div>
-          </div>
-        </div>
+
+            <Campo etiqueta="Fecha de nacimiento" id="e-nacimiento" opcional>
+              <input
+                id="e-nacimiento" className="control" type="date"
+                value={form.fecha_nacimiento} onChange={ev => cambiar('fecha_nacimiento', ev.target.value)}
+                disabled={guardando}
+              />
+            </Campo>
+
+            <div className={styles.filaDoble}>
+              <Campo etiqueta="RFC" id="e-rfc" error={errores.rfc} opcional>
+                <input
+                  id="e-rfc" className={`control mono${errores.rfc ? ' control--invalido' : ''}`}
+                  type="text" maxLength={13} placeholder="XAXX010101000"
+                  value={form.rfc} onChange={ev => cambiar('rfc', ev.target.value.toUpperCase())}
+                  disabled={guardando}
+                />
+              </Campo>
+              <Campo etiqueta="CURP" id="e-curp" error={errores.curp} opcional>
+                <input
+                  id="e-curp" className={`control mono${errores.curp ? ' control--invalido' : ''}`}
+                  type="text" maxLength={18} placeholder="XAXX010101HDFAAA00"
+                  value={form.curp} onChange={ev => cambiar('curp', ev.target.value.toUpperCase())}
+                  disabled={guardando}
+                />
+              </Campo>
+            </div>
+          </form>
+        </Modal>
       )}
-    </div>
+    </Layout>
   );
 }
