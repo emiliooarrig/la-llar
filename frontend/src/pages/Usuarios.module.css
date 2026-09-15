@@ -1,886 +1,139 @@
-/* ── Shell ──────────────────────────────────────────────── */
-.pagina {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--color-blanco-hueso);
-}
+/* ─────────────────────────────────────────────────────────────
+   Usuarios — accesos al sistema.
+   El shell, la tabla, los campos y el modal vienen de index.css:
+   aquí sólo vive lo que es propio de esta pantalla.
+   ───────────────────────────────────────────────────────────── */
 
-/* ── Header (consistente con Dashboard/Empleados) ──────── */
-.header {
+/* ── Censo por rol ────────────────────────────────────────
+   Antes había tres tarjetas idénticas (icono, número, etiqueta)
+   contando roles, y aparte un <select> para filtrar por rol: dos
+   controles para el mismo dato. El conteo ES el filtro. */
+.censo {
+  display: flex;
+  border: var(--borde);
+  border-radius: var(--radio);
   background: var(--color-blanco);
-  border-bottom: 1px solid var(--color-gris);
-  padding: 0 32px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   box-shadow: var(--sombra-sm);
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  overflow: clip;
+  margin-bottom: var(--e4);
 }
-
-.marca {
+.censoItem {
+  flex: 1;
   display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.logoSmall {
-  height: 36px;
-  width: auto;
-  display: block;
-}
-
-.appNombre {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-texto);
-}
-
-.usuario {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.infoUsuario {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-
-.nombreUsuario {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-texto);
-}
-
-.rolBadge {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--color-naranja);
-  background-color: rgba(232, 98, 26, 0.10);
-  padding: 2px 8px;
-  border-radius: 20px;
-}
-
-/* ── Layout principal ───────────────────────────────────── */
-.contenido {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 32px;
-}
-
-.paginaHeader {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: 28px;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.tituloPagina {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--color-texto);
-  margin-bottom: 4px;
-}
-
-.subtituloPagina {
-  font-size: 14px;
-  color: var(--color-texto-suave);
-}
-
-.botonCrear {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background-color: var(--color-naranja);
-  color: var(--color-blanco);
+  align-items: baseline;
+  gap: var(--e2);
+  padding: var(--e3) var(--e4);
   border: none;
-  border-radius: var(--radio-sm);
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-  transition: background-color 0.15s, box-shadow 0.15s;
-}
-
-.botonCrear:hover {
-  background-color: var(--color-naranja-oscuro);
-  box-shadow: var(--sombra-sm);
-}
-
-/* ── Resumen por rol (mini-tarjetas) ────────────────────── */
-.resumen {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 22px;
-  flex-wrap: wrap;
-}
-
-.resumenCard {
-  flex: 1;
-  min-width: 150px;
-  background: var(--color-blanco);
-  border: 1.5px solid var(--color-gris);
-  border-left-width: 3px;
-  border-radius: var(--radio);
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  box-shadow: var(--sombra-sm);
-}
-
-.resumenAdmin    { border-left-color: var(--color-naranja); }
-.resumenGerente  { border-left-color: #1565C0; }
-.resumenProveedor{ border-left-color: var(--color-exito); }
-
-.resumenIcono {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radio-sm);
-  flex-shrink: 0;
-}
-
-.resumenIconoAdmin     { background-color: rgba(232, 98, 26, 0.12); color: var(--color-naranja-oscuro); }
-.resumenIconoGerente   { background-color: rgba(21, 101, 192, 0.10); color: #1565C0; }
-.resumenIconoProveedor { background-color: rgba(46, 125, 50, 0.10);  color: var(--color-exito); }
-
-.resumenNumero {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--color-texto);
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
-}
-
-.resumenEtiqueta {
-  font-size: 12px;
-  color: var(--color-texto-suave);
-  font-weight: 500;
-}
-
-/* ── Filtros ────────────────────────────────────────────── */
-.filtros {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-
-.campoBusqueda {
-  position: relative;
-  flex: 1;
-  min-width: 200px;
-}
-
-.iconoBusqueda {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--color-gris-medio);
-  pointer-events: none;
-  display: flex;
-}
-
-.inputBusqueda {
-  width: 100%;
-  padding: 9px 12px 9px 36px;
-  border: 1.5px solid var(--color-gris);
-  border-radius: var(--radio-sm);
-  font-size: 14px;
-  color: var(--color-texto);
-  background: var(--color-blanco);
-  transition: border-color 0.15s, box-shadow 0.15s;
-  outline: none;
-}
-
-.inputBusqueda::placeholder {
-  color: var(--color-gris-medio);
-}
-
-.inputBusqueda:focus {
-  border-color: var(--color-naranja);
-  box-shadow: 0 0 0 3px rgba(232, 98, 26, 0.10);
-}
-
-.selectFiltro {
-  padding: 9px 36px 9px 12px;
-  border: 1.5px solid var(--color-gris);
-  border-radius: var(--radio-sm);
-  font-size: 14px;
-  color: var(--color-texto);
-  background: var(--color-blanco);
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239E9892' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  outline: none;
-  transition: border-color 0.15s;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.selectFiltro:focus {
-  border-color: var(--color-naranja);
-}
-
-/* ── Tabla ──────────────────────────────────────────────── */
-.tablaWrapper {
-  background: var(--color-blanco);
-  border: 1.5px solid var(--color-gris);
-  border-radius: var(--radio);
-  overflow: hidden;
-  box-shadow: var(--sombra-sm);
-}
-
-.tabla {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13.5px;
-}
-
-.tabla thead {
-  background-color: var(--color-gris-claro);
-  border-bottom: 1.5px solid var(--color-gris);
-}
-
-.tabla th {
-  padding: 10px 12px;
+  border-left: var(--borde-suave);
+  background: none;
   text-align: left;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--color-texto-suave);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  white-space: nowrap;
-}
-
-.tabla td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--color-gris-claro);
-  color: var(--color-texto);
-  vertical-align: middle;
-}
-
-.tabla tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.tabla tbody tr:hover {
-  background-color: rgba(250, 248, 245, 0.8);
-}
-
-/* ── Tarjeta de identidad (signature) ───────────────────── */
-.identidad {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  flex-shrink: 0;
-  user-select: none;
-}
-
-.avatarAdmin     { background-color: rgba(232, 98, 26, 0.14); color: var(--color-naranja-oscuro); }
-.avatarGerente   { background-color: rgba(21, 101, 192, 0.12); color: #1565C0; }
-.avatarProveedor { background-color: rgba(46, 125, 50, 0.12);  color: var(--color-exito); }
-
-.identidadTexto {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.identidadNombre {
-  font-weight: 600;
-  color: var(--color-texto);
-}
-
-.identidadEmail {
-  font-size: 12.5px;
-  color: var(--color-texto-suave);
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ── Badge de rol (color de identidad por rol) ──────────── */
-.badgeRol {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 11px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.badgeRol::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: currentColor;
-}
-
-.rolAdmin     { background-color: rgba(232, 98, 26, 0.12); color: var(--color-naranja-oscuro); }
-.rolGerente   { background-color: rgba(21, 101, 192, 0.10); color: #1565C0; }
-.rolProveedor { background-color: rgba(46, 125, 50, 0.10);  color: var(--color-exito); }
-
-/* ── Chip de alcance (sucursal / proveedor) ─────────────── */
-.alcance {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px 3px 8px;
-  background-color: var(--color-gris-claro);
-  border-radius: var(--radio-sm);
-  font-size: 13px;
-  color: var(--color-texto);
-  max-width: 220px;
-}
-
-.alcanceIcono {
-  color: var(--color-gris-medio);
-  display: flex;
-  flex-shrink: 0;
-}
-
-.alcanceTexto {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.alcanceVacio {
-  color: var(--color-gris-medio);
-  font-size: 13px;
-}
-
-/* ── Estado activo / inactivo ───────────────────────────── */
-.badgeActivo,
-.badgeInactivo {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.badgeActivo {
-  background-color: rgba(46, 125, 50, 0.10);
-  color: var(--color-exito);
-}
-
-.badgeInactivo {
-  background-color: rgba(217, 48, 37, 0.10);
-  color: var(--color-error);
-}
-
-.badgeActivo::before,
-.badgeInactivo::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: currentColor;
-}
-
-/* Fila inactiva */
-.filaInactiva td {
-  opacity: 0.55;
-}
-
-.filaInactiva:hover {
-  background-color: rgba(250, 248, 245, 0.6) !important;
-}
-
-/* Marca "tú" en la fila del propio admin */
-.tuChip {
-  margin-left: 8px;
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-naranja);
-  background-color: rgba(232, 98, 26, 0.10);
-  padding: 1px 7px;
-  border-radius: 10px;
-  vertical-align: middle;
-}
-
-/* ── Botones de acción ──────────────────────────────────── */
-.thAcciones { width: 100px; text-align: center; }
-.colAcciones { text-align: center; }
-
-.acciones {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.btnAccion {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border: 1.5px solid transparent;
-  border-radius: var(--radio-sm);
-  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
-}
-
-.btnEditar {
-  composes: btnAccion;
-  color: #1565C0;
-  background-color: rgba(21, 101, 192, 0.08);
-  border-color: rgba(21, 101, 192, 0.15);
-}
-
-.btnEditar:hover {
-  background-color: rgba(21, 101, 192, 0.16);
-  border-color: rgba(21, 101, 192, 0.35);
-}
-
-.btnDesactivar {
-  composes: btnAccion;
-  color: var(--color-error);
-  background-color: rgba(217, 48, 37, 0.08);
-  border-color: rgba(217, 48, 37, 0.15);
-}
-
-.btnDesactivar:hover {
-  background-color: rgba(217, 48, 37, 0.16);
-  border-color: rgba(217, 48, 37, 0.35);
-}
-
-.btnActivar {
-  composes: btnAccion;
-  color: var(--color-exito);
-  background-color: rgba(46, 125, 50, 0.08);
-  border-color: rgba(46, 125, 50, 0.15);
-}
-
-.btnActivar:hover {
-  background-color: rgba(46, 125, 50, 0.16);
-  border-color: rgba(46, 125, 50, 0.35);
-}
-
-.btnAccion:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-/* ── Pie / estados ──────────────────────────────────────── */
-.pieTabla {
-  padding: 12px 16px;
-  font-size: 13px;
-  color: var(--color-texto-suave);
-  border-top: 1px solid var(--color-gris-claro);
-  background-color: var(--color-blanco);
-}
-
-.estadoTabla {
-  text-align: center;
-  padding: 60px 24px;
-  color: var(--color-texto-suave);
-  font-size: 14px;
-}
-
-.cargandoSpinner {
-  width: 28px;
-  height: 28px;
-  border: 3px solid var(--color-gris);
-  border-top-color: var(--color-naranja);
-  border-radius: 50%;
-  animation: girar 0.75s linear infinite;
-  margin: 0 auto 12px;
-}
-
-@keyframes girar { to { transform: rotate(360deg); } }
-
-/* ── Modal ──────────────────────────────────────────────── */
-.overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(45, 41, 38, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-  padding: 24px;
-  animation: fadeIn 0.15s ease;
-}
-
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-.modal {
-  background: var(--color-blanco);
-  border-radius: var(--radio-lg);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
-  width: 100%;
-  max-width: 520px;
-  max-height: calc(100vh - 48px);
-  display: flex;
-  flex-direction: column;
-  animation: slideUp 0.2s ease;
-}
-
-@keyframes slideUp {
-  from { transform: translateY(12px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-.modalHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px 0;
-}
-
-.modalTitulo {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-texto);
-}
-
-.modalCerrar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: none;
-  border-radius: var(--radio-sm);
-  color: var(--color-gris-medio);
-  transition: background-color 0.15s, color 0.15s;
-}
-
-.modalCerrar:hover {
-  background-color: var(--color-gris-claro);
-  color: var(--color-texto);
-}
-
-.modalCuerpo {
-  padding: 22px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  overflow-y: auto;
-}
-
-.campo {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.etiqueta {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-texto);
-}
-
-.input {
-  padding: 10px 14px;
-  border: 1.5px solid var(--color-gris);
-  border-radius: var(--radio-sm);
-  font-size: 14px;
-  color: var(--color-texto);
-  background: var(--color-blanco);
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  width: 100%;
-}
-
-.input::placeholder { color: var(--color-gris-medio); }
-
-.input:focus {
-  border-color: var(--color-naranja);
-  box-shadow: 0 0 0 3px rgba(232, 98, 26, 0.10);
-}
-
-.input:disabled {
-  background: var(--color-gris-claro);
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.inputHint {
-  font-size: 12px;
-  color: var(--color-texto-suave);
-}
-
-/* ── Selector segmentado de rol (signature) ─────────────── */
-.rolSelector {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.rolOpcion {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 8px;
-  border: 1.5px solid var(--color-gris);
-  border-radius: var(--radio-sm);
-  background: var(--color-blanco);
-  transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
-  text-align: center;
-}
-
-.rolOpcion:hover:not(:disabled) {
-  border-color: var(--color-gris-medio);
-}
-
-.rolOpcionIcono {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  color: var(--color-gris-medio);
-  background-color: var(--color-gris-claro);
-  transition: background-color 0.15s, color 0.15s;
-}
-
-.rolOpcionTexto {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--color-texto-suave);
-}
-
-.rolOpcion:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-/* Estado activo por rol */
-.rolActivoAdmin {
-  border-color: var(--color-naranja);
-  background-color: rgba(232, 98, 26, 0.06);
-  box-shadow: 0 0 0 3px rgba(232, 98, 26, 0.10);
-}
-.rolActivoAdmin .rolOpcionIcono { background-color: rgba(232, 98, 26, 0.14); color: var(--color-naranja-oscuro); }
-.rolActivoAdmin .rolOpcionTexto { color: var(--color-naranja-oscuro); }
-
-.rolActivoGerente {
-  border-color: #1565C0;
-  background-color: rgba(21, 101, 192, 0.05);
-  box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.10);
-}
-.rolActivoGerente .rolOpcionIcono { background-color: rgba(21, 101, 192, 0.12); color: #1565C0; }
-.rolActivoGerente .rolOpcionTexto { color: #1565C0; }
-
-.rolActivoProveedor {
-  border-color: var(--color-exito);
-  background-color: rgba(46, 125, 50, 0.05);
-  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.10);
-}
-.rolActivoProveedor .rolOpcionIcono { background-color: rgba(46, 125, 50, 0.12); color: var(--color-exito); }
-.rolActivoProveedor .rolOpcionTexto { color: var(--color-exito); }
-
-/* ── Campo de alcance condicional ───────────────────────── */
-.alcanceCampo {
-  animation: revelar 0.18s ease;
-}
-
-@keyframes revelar {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ── Campo de contraseña con toggle + generar ───────────── */
-.passwordFila {
-  display: flex;
-  gap: 8px;
-}
-
-.passwordWrap {
-  position: relative;
-  flex: 1;
-}
-
-.passwordWrap .input {
-  padding-right: 42px;
-}
-
-.togglePassword {
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border: none;
-  background: none;
-  color: var(--color-gris-medio);
-  border-radius: var(--radio-sm);
-  transition: color 0.15s, background-color 0.15s;
-}
-
-.togglePassword:hover {
-  color: var(--color-texto);
-  background-color: var(--color-gris-claro);
-}
-
-.btnGenerar {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 14px;
-  border: 1.5px solid var(--color-gris);
-  border-radius: var(--radio-sm);
-  background: var(--color-blanco);
-  color: var(--color-texto-suave);
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  transition: border-color 0.15s, color 0.15s;
-}
-
-.btnGenerar:hover {
-  border-color: var(--color-naranja);
-  color: var(--color-naranja);
-}
-
-/* ── Pie del modal ──────────────────────────────────────── */
-.modalPie {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 0 24px 20px;
-}
-
-.btnCancelar {
-  padding: 9px 20px;
-  border: 1.5px solid var(--color-gris);
-  border-radius: var(--radio-sm);
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--color-texto-suave);
-  background: none;
-  transition: border-color 0.15s, color 0.15s;
-}
-
-.btnCancelar:hover:not(:disabled) {
-  border-color: var(--color-gris-medio);
-  color: var(--color-texto);
-}
-
-.btnCancelar:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.btnGuardar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 140px;
-  padding: 9px 20px;
-  background-color: var(--color-naranja);
-  color: var(--color-blanco);
-  border: none;
-  border-radius: var(--radio-sm);
-  font-size: 14px;
-  font-weight: 600;
   transition: background-color 0.15s;
 }
+.censoItem:first-child { border-left: none; }
+.censoItem:hover { background: var(--color-blanco-hueso); }
+.censoActivo { background: var(--color-blanco-hueso); box-shadow: inset 0 -2px 0 var(--color-texto); }
+.censoActivo:hover { background: var(--color-blanco-hueso); }
 
-.btnGuardar:hover:not(:disabled) { background-color: var(--color-naranja-oscuro); }
-.btnGuardar:disabled { opacity: 0.7; cursor: not-allowed; }
-
-.spinnerBtn {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: white;
+.censoNumero {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--color-texto);
+  font-variant-numeric: tabular-nums;
+}
+.censoEtiqueta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--color-texto-suave);
+}
+.censoEtiqueta::before {
+  content: '';
+  width: 7px; height: 7px;
   border-radius: 50%;
-  animation: girar 0.7s linear infinite;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.censoTodos .censoEtiqueta::before { display: none; }
+.censoAdmin .censoEtiqueta { color: var(--color-naranja-oscuro); }
+.censoGerente .censoEtiqueta { color: var(--color-acero); }
+.censoProveedor .censoEtiqueta { color: var(--color-exito); }
+
+/* ── Identidad en la fila ─────────────────────────────────── */
+.identidad { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.avatar {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px;
+  border-radius: var(--radio-sm);
+  font-size: 11.5px; font-weight: 700;
+  flex-shrink: 0;
+}
+.avatarAdministrador { background: var(--tinte-naranja); color: var(--color-naranja-oscuro); }
+.avatarGerente { background: var(--tinte-acero); color: var(--color-acero); }
+.avatarProveedor { background: var(--tinte-exito); color: var(--color-exito); }
+
+.identidadTexto { display: flex; flex-direction: column; min-width: 0; line-height: 1.35; }
+.identidadNombre { font-weight: 600; color: var(--color-texto); }
+.identidadCorreo { font-size: 12px; color: var(--texto-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tuChip {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: var(--radio-pildora);
+  background: var(--color-gris-claro);
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--color-texto-suave);
+  white-space: nowrap;
 }
 
-/* ── Responsive ─────────────────────────────────────────── */
+.alcance { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.alcance svg { color: var(--texto-muted); }
+.alcanceVacio { color: var(--texto-muted); }
 
-/* Tablet: la tabla habilita scroll horizontal en vez de comprimirse. */
-@media (max-width: 1024px) {
-  .contenido { padding: 32px 24px; }
-
-  /* No se ocultan columnas: si la tabla no cabe, se desplaza
-     horizontalmente dentro de su contenedor (sin perder datos). */
-  .tablaWrapper {
-    overflow: hidden;          /* mantiene esquinas redondeadas en Y */
-    overflow-x: auto;          /* scroll horizontal cuando hace falta */
-    -webkit-overflow-scrolling: touch;
-  }
-  .tabla { min-width: 700px; }
+/* ── Selector de rol del modal ────────────────────────────
+   Elegir el rol decide qué campos existen después; un <select>
+   escondería esa consecuencia detrás de un desplegable. */
+.rolSelector { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--e2); }
+.rolOpcion {
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  padding: var(--e3) var(--e2);
+  border: var(--borde);
+  border-radius: var(--radio-sm);
+  background: var(--color-blanco);
+  font-size: 12.5px; font-weight: 600;
+  color: var(--color-texto-suave);
+  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
 }
-
-/* Móvil grande / phablet */
-@media (max-width: 768px) {
-  .header { padding: 0 16px; }
-  .appNombre { display: none; }
-  .contenido { padding: 24px 16px; }
-
-  /* Encabezado y botón de crear a lo ancho. */
-  .paginaHeader { align-items: stretch; }
-  .botonCrear { width: 100%; justify-content: center; }
-
-  /* Filtros apilados y a lo ancho. */
-  .filtros { flex-direction: column; }
-  .campoBusqueda { min-width: 0; }
-  .selectFiltro { width: 100%; box-sizing: border-box; }
-
-  /* Densidad de tabla aún menor + identidad compacta. */
-  .tabla { min-width: 660px; }
-  .tabla th { padding: 9px 10px; }
-  .tabla td { padding: 9px 10px; }
-  .avatar { width: 32px; height: 32px; font-size: 12px; }
-  .identidad { gap: 9px; }
-  .identidadEmail { max-width: 200px; }
+.rolOpcion:hover:not(:disabled) { border-color: var(--color-gris-medio); color: var(--color-texto); }
+.rolOpcionIcono {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--color-gris-claro);
+  color: var(--color-gris-medio);
+  transition: background-color 0.15s, color 0.15s;
 }
+.rolActivoAdministrador { border-color: var(--color-naranja); background: var(--tinte-naranja); color: var(--color-naranja-oscuro); }
+.rolActivoAdministrador .rolOpcionIcono { background: var(--color-naranja); color: var(--color-blanco); }
+.rolActivoGerente { border-color: var(--color-acero); background: var(--tinte-acero); color: var(--color-acero); }
+.rolActivoGerente .rolOpcionIcono { background: var(--color-acero); color: var(--color-blanco); }
+.rolActivoProveedor { border-color: var(--color-exito); background: var(--tinte-exito); color: var(--color-exito); }
+.rolActivoProveedor .rolOpcionIcono { background: var(--color-exito); color: var(--color-blanco); }
 
-/* Teléfonos pequeños */
-@media (max-width: 480px) {
-  .contenido { padding: 20px 12px; }
-  .tituloPagina { font-size: 21px; }
+.passwordFila { display: flex; gap: var(--e2); align-items: flex-start; }
+.passwordFila .campoConBoton { flex: 1; }
 
-  /* Mini-tarjetas de resumen: dos por fila. */
-  .resumen { gap: 8px; }
-  .resumenCard { min-width: calc(50% - 4px); padding: 12px; }
-
-  /* Botones del modal a lo ancho. */
-  .modalPie { flex-direction: column-reverse; }
-  .modalPie .btnCancelar,
-  .modalPie .btnGuardar { width: 100%; }
+@media (max-width: 760px) {
+  .censo { flex-wrap: wrap; }
+  .censoItem { flex-basis: 50%; border-top: var(--borde-suave); }
+  .censoItem:nth-child(-n+2) { border-top: none; }
+  .censoItem:nth-child(odd) { border-left: none; }
+}
+@media (max-width: 520px) {
+  .rolSelector { grid-template-columns: 1fr; }
+  .rolOpcion { flex-direction: row; justify-content: flex-start; gap: var(--e3); }
+  .passwordFila { flex-direction: column; }
+  .passwordFila .campoConBoton, .passwordFila > button { width: 100%; }
 }
