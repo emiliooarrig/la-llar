@@ -1,158 +1,59 @@
-import { useState, useEffect, useMemo } from 'react';
-import Swal from 'sweetalert2';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import LogoInicio from '../components/LogoInicio';
-import MenuUsuario from '../components/MenuUsuario';
-import Footer from '../components/Footer';
 import api from '../services/api';
+import Layout from '../components/Layout';
+import Modal from '../components/Modal';
+import Campo from '../components/Campo';
+import BarraFiltros from '../components/BarraFiltros';
+import EstadoDato from '../components/EstadoDato';
+import {
+  IconoChevron, IconoDescargar, IconoCandado, IconoCalendario, IconoAlerta, IconoInfo,
+} from '../components/Iconos';
+import { useFiltrosURL } from '../hooks/useFiltrosURL';
+import { confirmar, toast, avisoError } from '../lib/alertas';
+import { aDatetimeLocal } from '../lib/ventanas';
 import styles from './Asistencias.module.css';
 
-/* ── Iconos SVG inline ─────────────────────────────────── */
-function IconoChevron({ dir = 'left' }) {
-  const d = dir === 'left' ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6';
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d={d} />
-    </svg>
-  );
-}
+/* ── Constantes de calendario ───────────────────────────── */
+const DIAS_SEMANA = [
+  { iso: 1, corta: 'Lun' }, { iso: 2, corta: 'Mar' }, { iso: 3, corta: 'Mié' },
+  { iso: 4, corta: 'Jue' }, { iso: 5, corta: 'Vie' }, { iso: 6, corta: 'Sáb' },
+  { iso: 7, corta: 'Dom' },
+];
+const NOMBRE_DIA_ISO = Object.fromEntries(DIAS_SEMANA.map(d => [d.iso, d.corta]));
+const NOMBRES_MES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-function IconoCerrar() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
+const TIPOS_JUSTIFICACION = [
+  { valor: 'vacaciones', etiqueta: 'Vacaciones' },
+  { valor: 'incapacidad', etiqueta: 'Incapacidad' },
+  { valor: 'permiso', etiqueta: 'Permiso' },
+  { valor: 'falta_justificada', etiqueta: 'Falta justificada' },
+];
+const ETIQUETA_JUST = Object.fromEntries(TIPOS_JUSTIFICACION.map(t => [t.valor, t.etiqueta]));
 
-function IconoCalendario() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-      <line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" />
-      <line x1="3" y1="10" x2="21" y2="10" />
-    </svg>
-  );
-}
+const pad = n => String(n).padStart(2, '0');
+const mesActual = () => { const h = new Date(); return `${h.getFullYear()}-${pad(h.getMonth() + 1)}`; };
+const HOY_STR = (() => { const h = new Date(); return `${h.getFullYear()}-${pad(h.getMonth() + 1)}-${pad(h.getDate())}`; })();
 
-function IconoDescargar() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
-  );
-}
-
-function IconoCandado({ abierto = false }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-      {abierto
-        ? <path d="M7 11V7a5 5 0 0 1 9.9-1" />
-        : <path d="M7 11V7a5 5 0 0 1 10 0v4" />}
-    </svg>
-  );
-}
-
-/* ── Constantes ─────────────────────────────────────────── */
-const ETIQUETA_ROL = { administrador: 'Administrador', gerente: 'Gerente', proveedor: 'Proveedor' };
-
-const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-
-// Nombre corto por número ISO de día (1=Lunes … 7=Domingo).
-const NOMBRE_DIA_ISO = { 1: 'Lun', 2: 'Mar', 3: 'Mié', 4: 'Jue', 5: 'Vie', 6: 'Sáb', 7: 'Dom' };
-
-// Convierte "1,2,3,4,5,6" → Set{1,2,3,4,5,6}. Fallback: lunes a sábado.
+// "1,2,3,4,5,6" → Set{1..6}. Sin dato, de lunes a sábado.
 function parseDiasLaborales(str) {
   if (!str) return new Set([1, 2, 3, 4, 5, 6]);
   const dias = String(str).split(',').map(s => parseInt(s, 10)).filter(n => n >= 1 && n <= 7);
   return new Set(dias.length ? dias : [1, 2, 3, 4, 5, 6]);
 }
 
-// getDay(): 0=Domingo … 6=Sábado → ISO 1=Lunes … 7=Domingo.
-function isoDeFecha(fecha) {
-  const d = new Date(`${fecha}T00:00:00`).getDay();
-  return d === 0 ? 7 : d;
-}
+// getDay(): 0=domingo … 6=sábado → ISO 1=lunes … 7=domingo.
+const isoDeFecha = fecha => { const d = new Date(`${fecha}T00:00:00`).getDay(); return d === 0 ? 7 : d; };
 
-const NOMBRES_MES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-];
-
-const TIPOS_JUSTIFICACION = [
-  { valor: 'vacaciones',        etiqueta: 'Vacaciones' },
-  { valor: 'incapacidad',       etiqueta: 'Incapacidad' },
-  { valor: 'permiso',           etiqueta: 'Permiso' },
-  { valor: 'falta_justificada', etiqueta: 'Falta justificada' },
-];
-
-const ETIQUETA_JUST = TIPOS_JUSTIFICACION.reduce((acc, t) => ({ ...acc, [t.valor]: t.etiqueta }), {});
-
-const FORM_VACIO = { entrada: '', salida: '', tipo: '', nota: '' };
-
-const FORM_PERMISO_VACIO = { desde: '', hasta: '' };
-
-function formatDatetime(iso) {
-  if (!iso) return '';
-  return new Date(iso).toLocaleString('es-MX', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', hour12: false,
-  });
-}
-
-function toDatetimeLocal(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-/* Estado visible del permiso de edición para gerentes (ventana `asistencias`). */
-function estadoPermiso(v) {
-  if (!v) return { clave: 'cerrado', texto: 'Sin permiso vigente' };
-  const now = new Date();
-  if (v.desde && v.hasta) {
-    if (now < new Date(v.desde)) return { clave: 'programado', texto: `Programado · inicia ${formatDatetime(v.desde)}` };
-    if (now <= new Date(v.hasta)) return { clave: 'activo', texto: `Activo · termina ${formatDatetime(v.hasta)}` };
-    return { clave: 'cerrado', texto: 'Permiso vencido' };
-  }
-  return v.abierta
-    ? { clave: 'activo', texto: 'Activo (sin fecha de término)' }
-    : { clave: 'cerrado', texto: 'Sin permiso vigente' };
-}
-
-/* ── Helpers de fecha ───────────────────────────────────── */
-function pad(n) {
-  return String(n).padStart(2, '0');
-}
-
-function mesActual() {
-  const hoy = new Date();
-  return `${hoy.getFullYear()}-${pad(hoy.getMonth() + 1)}`;
-}
-
-const HOY_STR = (() => {
-  const h = new Date();
-  return `${h.getFullYear()}-${pad(h.getMonth() + 1)}-${pad(h.getDate())}`;
-})();
-
-// Genera la matriz de semanas (lunes a domingo) para un mes 'YYYY-MM'.
+/** Matriz de semanas (lunes a domingo) para un mes 'YYYY-MM'. */
 function construirCalendario(mes) {
   const [y, m] = mes.split('-').map(Number);
-  const primero = new Date(y, m - 1, 1);
   const diasEnMes = new Date(y, m, 0).getDate();
-  // getDay(): 0=domingo … convertimos a 0=lunes
-  const offset = (primero.getDay() + 6) % 7;
+  const offset = (new Date(y, m - 1, 1).getDay() + 6) % 7;
 
-  const celdas = [];
-  for (let i = 0; i < offset; i++) celdas.push(null);
-  for (let d = 1; d <= diasEnMes; d++) {
-    celdas.push({ dia: d, fecha: `${mes}-${pad(d)}` });
-  }
+  const celdas = Array(offset).fill(null);
+  for (let d = 1; d <= diasEnMes; d++) celdas.push({ dia: d, fecha: `${mes}-${pad(d)}` });
   while (celdas.length % 7 !== 0) celdas.push(null);
 
   const semanas = [];
@@ -168,8 +69,7 @@ function estadoDia(dia) {
   return 'sinDatos';
 }
 
-// Minutos trabajados en un día = última salida − primera entrada.
-// Solo se contabiliza cuando el día tiene entrada y salida.
+// Minutos trabajados = última salida − primera entrada (sólo días cerrados).
 function minutosTrabajados(dia) {
   if (!dia?.entrada || !dia?.salida) return 0;
   const [eh, em] = dia.entrada.split(':').map(Number);
@@ -178,7 +78,6 @@ function minutosTrabajados(dia) {
   return diff > 0 ? diff : 0;
 }
 
-// Formatea minutos como "Xh Ym" (omite los minutos cuando son 0).
 function formatearHoras(min) {
   const h = Math.floor(min / 60);
   const m = min % 60;
@@ -186,89 +85,106 @@ function formatearHoras(min) {
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
 
-/* ── Componente principal ───────────────────────────────── */
+function formatDatetime(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleString('es-MX', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+}
+
+/** Estado del permiso temporal de edición para gerentes. */
+function estadoPermiso(v) {
+  if (!v) return { clave: 'cerrado', texto: 'Sin permiso vigente' };
+  const ahora = new Date();
+  if (v.desde && v.hasta) {
+    if (ahora < new Date(v.desde)) return { clave: 'programado', texto: `Programado · inicia el ${formatDatetime(v.desde)}` };
+    if (ahora <= new Date(v.hasta)) return { clave: 'activo', texto: `Activo · termina el ${formatDatetime(v.hasta)}` };
+    return { clave: 'cerrado', texto: 'Permiso vencido' };
+  }
+  return v.abierta
+    ? { clave: 'activo', texto: 'Activo (sin fecha de término)' }
+    : { clave: 'cerrado', texto: 'Sin permiso vigente' };
+}
+
+const FORM_DIA = { entrada: '', salida: '', tipo: '', nota: '' };
+
 export default function Asistencias() {
   const { usuario } = useAuth();
   const esGerente = usuario?.rol === 'gerente';
 
-  // Datos base
+  /* Los filtros viven en la URL: así el administrador puede mandarle a un
+     gerente el mes exacto de un empleado, y recargar no pierde el sitio. */
+  const { filtros, setFiltro, setFiltros } = useFiltrosURL({ unidad: '', empleado: '', mes: mesActual() });
+  const { unidad, empleado: empleadoSel, mes } = filtros;
+
   const [sucursales, setSucursales] = useState([]);
-  const [empleados, setEmpleados]   = useState([]);
+  const [empleados, setEmpleados] = useState([]);
+  const [errorBase, setErrorBase] = useState(null);
 
-  // Filtros
-  const [filtroSucursal, setFiltroSucursal] = useState('');
-  const [empleadoSel, setEmpleadoSel]       = useState('');
-  const [mes, setMes]                       = useState(mesActual());
-
-  // Datos del mes (mapa fecha → { entrada, salida, justificacion })
-  const [diasMes, setDiasMes]   = useState({});
+  const [diasMes, setDiasMes] = useState({});
   const [cargandoMes, setCargandoMes] = useState(false);
 
-  // Modal de día
-  const [diaModal, setDiaModal] = useState(null); // { dia, fecha }
-  const [form, setForm]         = useState(FORM_VACIO);
+  const [diaModal, setDiaModal] = useState(null);
+  const [form, setForm] = useState(FORM_DIA);
+  const [errores, setErrores] = useState({});
   const [guardando, setGuardando] = useState(false);
 
-  // Descarga del reporte PDF de la unidad
   const [descargando, setDescargando] = useState(false);
 
-  // Permiso temporal de edición para gerentes (ventana `asistencias`)
   const [ventanaEdicion, setVentanaEdicion] = useState(null);
-  const [modalPermiso, setModalPermiso]     = useState(false);
-  const [formPermiso, setFormPermiso]       = useState(FORM_PERMISO_VACIO);
+  const [modalPermiso, setModalPermiso] = useState(false);
+  const [formPermiso, setFormPermiso] = useState({ desde: '', hasta: '' });
+  const [erroresPermiso, setErroresPermiso] = useState({});
   const [guardandoPermiso, setGuardandoPermiso] = useState(false);
 
-  /* ── Carga inicial: sucursales + empleados + permiso ── */
+  /* ── Carga base ─────────────────────────────────────────── */
   useEffect(() => {
     (async () => {
       try {
-        const [resS, resE, resV] = await Promise.all([
+        const [s, e, v] = await Promise.all([
           api.get('/sucursales'),
           api.get('/empleados'),
-          // Si falla, se asume cerrado; no bloquea la página.
+          // Si falla, se asume cerrado; no debe bloquear la página.
           api.get('/ventanas/asistencias').catch(() => null),
         ]);
-        setVentanaEdicion(resV?.data ?? null);
-        // El gerente solo opera sobre su unidad: la preseleccionamos y
-        // limitamos el selector a esa única sucursal.
+        setVentanaEdicion(v?.data ?? null);
+        setEmpleados(e.data);
+
+        // El gerente sólo opera sobre su unidad: se preselecciona y el
+        // selector se limita a esa única sucursal.
         if (esGerente && usuario?.sucursal_id) {
-          setSucursales(resS.data.filter(s => s.id === usuario.sucursal_id));
-          setFiltroSucursal(String(usuario.sucursal_id));
+          setSucursales(s.data.filter(x => x.id === usuario.sucursal_id));
+          if (unidad !== String(usuario.sucursal_id)) setFiltro('unidad', String(usuario.sucursal_id));
         } else {
-          setSucursales(resS.data);
+          setSucursales(s.data);
         }
-        setEmpleados(resE.data);
       } catch {
-        Swal.fire({ icon: 'error', title: 'Error al cargar', text: 'No se pudieron obtener sucursales y empleados.', confirmButtonColor: '#E8621A' });
+        setErrorBase('No se pudieron obtener las unidades y la plantilla.');
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [esGerente, usuario?.sucursal_id]);
 
-  /* ── Empleados de la unidad seleccionada ────────────── */
   const empleadosUnidad = useMemo(() => {
-    if (!filtroSucursal) return [];
+    if (!unidad) return [];
     return empleados
-      .filter(e => e.sucursal_id === parseInt(filtroSucursal) && e.activo)
-      .sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }, [empleados, filtroSucursal]);
+      .filter(e => e.sucursal_id === Number(unidad) && e.activo)
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  }, [empleados, unidad]);
 
-  /* ── Cargar el mes del empleado seleccionado ────────── */
+  /* ── Mes del empleado seleccionado ──────────────────────── */
   useEffect(() => {
-    if (!empleadoSel) {
-      setDiasMes({});
-      return;
-    }
+    if (!empleadoSel) { setDiasMes({}); return undefined; }
     let cancelado = false;
     (async () => {
       setCargandoMes(true);
       try {
-        const res = await api.get('/asistencias', { params: { empleado_id: empleadoSel, mes } });
+        const { data } = await api.get('/asistencias', { params: { empleado_id: empleadoSel, mes } });
         if (cancelado) return;
-        const mapa = {};
-        for (const d of res.data.dias) mapa[d.fecha] = d;
-        setDiasMes(mapa);
+        setDiasMes(Object.fromEntries(data.dias.map(d => [d.fecha, d])));
       } catch {
-        if (!cancelado) Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudieron cargar las asistencias del mes.', confirmButtonColor: '#E8621A' });
+        if (!cancelado) await avisoError('No se pudieron cargar las asistencias del mes.');
       } finally {
         if (!cancelado) setCargandoMes(false);
       }
@@ -277,14 +193,12 @@ export default function Asistencias() {
   }, [empleadoSel, mes]);
 
   const semanas = useMemo(() => construirCalendario(mes), [mes]);
-  const empleadoActual = empleadosUnidad.find(e => e.id === parseInt(empleadoSel));
+  const empleadoActual = empleadosUnidad.find(e => e.id === Number(empleadoSel));
 
-  // El gerente solo puede editar mientras el permiso temporal esté vigente.
   const permiso = estadoPermiso(ventanaEdicion);
   const puedeEditar = !esGerente || permiso.clave === 'activo';
 
-  // Días laborales configurados para la unidad seleccionada (Set de ISO 1..7).
-  const sucursalActual = sucursales.find(s => s.id === parseInt(filtroSucursal));
+  const sucursalActual = sucursales.find(s => s.id === Number(unidad));
   const diasLaborales = useMemo(
     () => parseDiasLaborales(sucursalActual?.dias_laborales),
     [sucursalActual?.dias_laborales],
@@ -294,13 +208,11 @@ export default function Asistencias() {
     [diasLaborales],
   );
 
-  /* ── Resumen ejecutivo (horas y faltas, semanal y mensual) ──
-   * Se calcula en el navegador a partir de los días ya cargados,
-   * reutilizando la misma estructura de semanas del calendario. */
+  /* ── Resumen del mes ────────────────────────────────────── */
   const resumen = useMemo(() => {
     if (!empleadoSel) return null;
 
-    const semanasResumen = semanas.map((semana) => {
+    const porSemana = semanas.map(semana => {
       let minutos = 0, completos = 0, incompletos = 0, justificados = 0, faltas = 0;
       let primera = null, ultima = null, contieneHoy = false;
 
@@ -313,24 +225,16 @@ export default function Asistencias() {
         const dia = diasMes[celda.fecha];
         minutos += minutosTrabajados(dia);
 
-        if (dia?.justificacion) {
-          justificados++;
-        } else if (dia?.entrada && dia?.salida) {
-          completos++;
-        } else if (dia?.entrada || dia?.salida) {
-          incompletos++;
-        } else {
-          // Falta: día laboral de la unidad ya transcurrido, sin registro.
-          const esPasado = celda.fecha < HOY_STR;
-          const esLaboral = diasLaborales.has(isoDeFecha(celda.fecha));
-          if (esPasado && esLaboral) faltas++;
-        }
+        if (dia?.justificacion) justificados++;
+        else if (dia?.entrada && dia?.salida) completos++;
+        else if (dia?.entrada || dia?.salida) incompletos++;
+        else if (celda.fecha < HOY_STR && diasLaborales.has(isoDeFecha(celda.fecha))) faltas++;
       }
 
       return { primera, ultima, minutos, completos, incompletos, justificados, faltas, contieneHoy };
     }).filter(s => s.primera);
 
-    const total = semanasResumen.reduce((acc, s) => ({
+    const total = porSemana.reduce((acc, s) => ({
       minutos: acc.minutos + s.minutos,
       completos: acc.completos + s.completos,
       incompletos: acc.incompletos + s.incompletos,
@@ -338,106 +242,96 @@ export default function Asistencias() {
       faltas: acc.faltas + s.faltas,
     }), { minutos: 0, completos: 0, incompletos: 0, justificados: 0, faltas: 0 });
 
-    return { semanasResumen, total };
+    return { porSemana, total };
   }, [empleadoSel, semanas, diasMes, diasLaborales]);
 
-  /* ── Navegación de mes ──────────────────────────────── */
+  /* ── Navegación ─────────────────────────────────────────── */
   function cambiarMes(delta) {
     const [y, m] = mes.split('-').map(Number);
     const nuevo = new Date(y, m - 1 + delta, 1);
-    setMes(`${nuevo.getFullYear()}-${pad(nuevo.getMonth() + 1)}`);
+    setFiltro('mes', `${nuevo.getFullYear()}-${pad(nuevo.getMonth() + 1)}`);
   }
 
-  function cambiarSucursal(valor) {
-    setFiltroSucursal(valor);
-    setEmpleadoSel('');
+  function cambiarUnidad(valor) {
+    // Un solo cambio: cambiar de unidad invalida al empleado elegido.
+    setFiltros({ unidad: valor, empleado: '' });
     setDiasMes({});
   }
 
-  /* ── Modal de día ───────────────────────────────────── */
+  /* ── Día ────────────────────────────────────────────────── */
   function abrirDia(celda) {
     if (!celda || !empleadoSel) return;
     const dia = diasMes[celda.fecha];
-    setDiaModal(celda);
+    setErrores({});
     setForm({
       entrada: dia?.entrada || '',
       salida: dia?.salida || '',
       tipo: dia?.justificacion?.tipo || '',
       nota: dia?.justificacion?.nota || '',
     });
+    setDiaModal(celda);
   }
 
-  function cerrarModal() {
-    if (guardando) return;
-    setDiaModal(null);
-    setForm(FORM_VACIO);
-  }
-
-  async function guardarDia() {
+  async function guardarDia(e) {
+    e.preventDefault();
     if (form.entrada && form.salida && form.salida < form.entrada) {
-      Swal.fire({ icon: 'warning', title: 'Horario inválido', text: 'La salida no puede ser anterior a la entrada.', confirmButtonColor: '#E8621A' });
+      setErrores({ salida: 'La salida no puede ser anterior a la entrada.' });
       return;
     }
 
     setGuardando(true);
     try {
-      const res = await api.put('/asistencias/dia', {
-        empleado_id: parseInt(empleadoSel),
+      const { data } = await api.put('/asistencias/dia', {
+        empleado_id: Number(empleadoSel),
         fecha: diaModal.fecha,
         entrada: form.entrada || null,
         salida: form.salida || null,
         justificacion: form.tipo ? { tipo: form.tipo, nota: form.nota } : null,
       });
-      setDiasMes(prev => ({ ...prev, [diaModal.fecha]: { fecha: diaModal.fecha, ...res.data } }));
-      cerrarModal();
-      Swal.fire({ icon: 'success', title: 'Día actualizado', timer: 1300, showConfirmButton: false, timerProgressBar: true });
-    } catch (e) {
-      const msg = e.response?.data?.error || 'No se pudo guardar el día.';
-      Swal.fire({ icon: 'error', title: 'Error', text: msg, confirmButtonColor: '#E8621A' });
+      setDiasMes(prev => ({ ...prev, [diaModal.fecha]: { fecha: diaModal.fecha, ...data } }));
+      setDiaModal(null);
+      toast('Día actualizado');
+    } catch (err) {
+      await avisoError(err.response?.data?.error || 'No se pudo guardar el día.');
     } finally {
       setGuardando(false);
     }
   }
 
+  /* Revertir descarta una corrección manual: se confirma. */
   async function revertirDia() {
-    const result = await Swal.fire({
-      title: '¿Revertir corrección?',
-      text: 'El día volverá a mostrar las marcas originales del checador. La justificación no se elimina.',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#E8621A',
-      cancelButtonColor: '#9E9892',
-      confirmButtonText: 'Sí, revertir',
-      cancelButtonText: 'Cancelar',
+    const ok = await confirmar({
+      titulo: '¿Revertir la corrección?',
+      texto: 'El día volverá a mostrar las marcas originales del checador. La justificación se conserva.',
+      confirmar: 'Revertir al checador',
     });
-    if (!result.isConfirmed) return;
+    if (!ok) return;
 
     setGuardando(true);
     try {
-      const res = await api.put('/asistencias/dia', {
-        empleado_id: parseInt(empleadoSel),
+      const { data } = await api.put('/asistencias/dia', {
+        empleado_id: Number(empleadoSel),
         fecha: diaModal.fecha,
         revertir: true,
         justificacion: form.tipo ? { tipo: form.tipo, nota: form.nota } : null,
       });
-      setDiasMes(prev => ({ ...prev, [diaModal.fecha]: { fecha: diaModal.fecha, ...res.data } }));
-      cerrarModal();
-      Swal.fire({ icon: 'success', title: 'Corrección revertida', timer: 1300, showConfirmButton: false, timerProgressBar: true });
-    } catch (e) {
-      const msg = e.response?.data?.error || 'No se pudo revertir la corrección.';
-      Swal.fire({ icon: 'error', title: 'Error', text: msg, confirmButtonColor: '#E8621A' });
+      setDiasMes(prev => ({ ...prev, [diaModal.fecha]: { fecha: diaModal.fecha, ...data } }));
+      setDiaModal(null);
+      toast('Corrección revertida');
+    } catch (err) {
+      await avisoError(err.response?.data?.error || 'No se pudo revertir la corrección.');
     } finally {
       setGuardando(false);
     }
   }
 
-  /* ── Descarga del reporte PDF de la unidad ──────────── */
+  /* ── Reporte PDF ────────────────────────────────────────── */
   async function descargarReporte() {
-    if (!filtroSucursal || descargando) return;
+    if (!unidad || descargando) return;
     setDescargando(true);
     try {
       const res = await api.get('/asistencias/reporte', {
-        params: { sucursal_id: filtroSucursal, mes },
+        params: { sucursal_id: unidad, mes },
         responseType: 'blob',
       });
       const url = URL.createObjectURL(res.data);
@@ -450,71 +344,60 @@ export default function Asistencias() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-    } catch (e) {
+    } catch (err) {
       // El error llega como Blob (responseType); intentamos leer el mensaje.
-      let msg = 'No se pudo generar el reporte.';
-      if (e.response?.data instanceof Blob) {
-        try { msg = JSON.parse(await e.response.data.text()).error || msg; } catch { /* noop */ }
+      let mensaje = 'No se pudo generar el reporte.';
+      if (err.response?.data instanceof Blob) {
+        try { mensaje = JSON.parse(await err.response.data.text()).error || mensaje; } catch { /* noop */ }
       }
-      Swal.fire({ icon: 'error', title: 'Error', text: msg, confirmButtonColor: '#E8621A' });
+      await avisoError(mensaje);
     } finally {
       setDescargando(false);
     }
   }
 
-  /* ── Permiso temporal de edición para gerentes (admin) ── */
-  function abrirModalPermiso() {
-    setFormPermiso({
-      desde: toDatetimeLocal(ventanaEdicion?.desde),
-      hasta: toDatetimeLocal(ventanaEdicion?.hasta),
-    });
+  /* ── Permiso de edición para gerentes ───────────────────── */
+  function abrirPermiso() {
+    setFormPermiso({ desde: aDatetimeLocal(ventanaEdicion?.desde), hasta: aDatetimeLocal(ventanaEdicion?.hasta) });
+    setErroresPermiso({});
     setModalPermiso(true);
   }
 
-  function cerrarModalPermiso() {
-    if (guardandoPermiso) return;
-    setModalPermiso(false);
-    setFormPermiso(FORM_PERMISO_VACIO);
-  }
-
-  async function otorgarPermiso() {
-    if (!formPermiso.desde || !formPermiso.hasta) {
-      Swal.fire({ icon: 'warning', title: 'Campos requeridos', text: 'Indica el inicio y el término del permiso.', confirmButtonColor: '#E8621A' });
-      return;
+  async function otorgarPermiso(e) {
+    e.preventDefault();
+    const fallos = {};
+    if (!formPermiso.desde) fallos.desde = 'Indica cuándo empieza.';
+    if (!formPermiso.hasta) fallos.hasta = 'Indica cuándo termina.';
+    if (formPermiso.desde && formPermiso.hasta && new Date(formPermiso.hasta) <= new Date(formPermiso.desde)) {
+      fallos.hasta = 'El término debe ser posterior al inicio.';
     }
-    const dDesde = new Date(formPermiso.desde);
-    const dHasta = new Date(formPermiso.hasta);
-    if (dHasta <= dDesde) {
-      Swal.fire({ icon: 'warning', title: 'Rango inválido', text: 'El término debe ser posterior al inicio.', confirmButtonColor: '#E8621A' });
-      return;
-    }
+    setErroresPermiso(fallos);
+    if (Object.keys(fallos).length > 0) return;
 
     setGuardandoPermiso(true);
     try {
-      const res = await api.put('/ventanas/asistencias/programacion', {
-        desde: dDesde.toISOString(),
-        hasta: dHasta.toISOString(),
+      const { data } = await api.put('/ventanas/asistencias/programacion', {
+        desde: new Date(formPermiso.desde).toISOString(),
+        hasta: new Date(formPermiso.hasta).toISOString(),
       });
-      setVentanaEdicion(res.data);
-      cerrarModalPermiso();
-      Swal.fire({ icon: 'success', title: 'Permiso otorgado', text: `Los gerentes podrán editar asistencias hasta el ${formatDatetime(res.data.hasta)}.`, confirmButtonColor: '#E8621A' });
-    } catch (e) {
-      const msg = e.response?.data?.error || 'No se pudo otorgar el permiso.';
-      Swal.fire({ icon: 'error', title: 'Error', text: msg, confirmButtonColor: '#E8621A' });
+      setVentanaEdicion(data);
+      setModalPermiso(false);
+      toast(`Permiso vigente hasta el ${formatDatetime(data.hasta)}`);
+    } catch (err) {
+      await avisoError(err.response?.data?.error || 'No se pudo otorgar el permiso.');
     } finally {
       setGuardandoPermiso(false);
     }
   }
 
   async function revocarPermiso() {
-    const r = await Swal.fire({
-      title: '¿Revocar permiso?',
-      text: 'Los gerentes dejarán de poder editar asistencias de inmediato.',
-      icon: 'question', showCancelButton: true,
-      confirmButtonColor: '#D93025', cancelButtonColor: '#9E9892',
-      confirmButtonText: 'Sí, revocar', cancelButtonText: 'Cancelar',
+    const ok = await confirmar({
+      titulo: '¿Revocar el permiso?',
+      texto: 'Los gerentes dejarán de poder editar asistencias de inmediato.',
+      confirmar: 'Revocar permiso',
+      destructivo: true,
     });
-    if (!r.isConfirmed) return;
+    if (!ok) return;
 
     setGuardandoPermiso(true);
     try {
@@ -522,396 +405,406 @@ export default function Asistencias() {
       // Por si la ventana quedó abierta en modo manual, se cierra también.
       if (res.data.abierta) res = await api.patch('/ventanas/asistencias');
       setVentanaEdicion(res.data);
-      cerrarModalPermiso();
-      Swal.fire({ icon: 'success', title: 'Permiso revocado', timer: 1400, showConfirmButton: false, timerProgressBar: true });
+      setModalPermiso(false);
+      toast('Permiso revocado');
     } catch {
-      Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo revocar el permiso.', confirmButtonColor: '#E8621A' });
+      await avisoError('No se pudo revocar el permiso.');
     } finally {
       setGuardandoPermiso(false);
     }
   }
 
-  /* ── Render ─────────────────────────────────────────── */
   const [anio, numMes] = mes.split('-').map(Number);
+  const diaSeleccionado = diaModal ? diasMes[diaModal.fecha] : null;
 
   return (
-    <div className={styles.pagina}>
-
-      {/* Header */}
-      <header className={styles.header}>
-        <div className={styles.marca}>
-          <LogoInicio className={styles.logoSmall} />
-          <span className={styles.appNombre}>Sistema de Gestión</span>
-        </div>
-        <div className={styles.usuario}>
-          <div className={styles.infoUsuario}>
-            <span className={styles.nombreUsuario}>{usuario?.nombre}</span>
-            <span className={styles.rolBadge}>{ETIQUETA_ROL[usuario?.rol]}</span>
-          </div>
-          <MenuUsuario />
-        </div>
-      </header>
-
-      <main className={styles.contenido}>
-        <div className={styles.paginaHeader}>
-          <div>
-            <h1 className={styles.tituloPagina}>Asistencias</h1>
-            <p className={styles.subtituloPagina}>
-              {esGerente
-                ? (puedeEditar
-                    ? 'Consulta y edición temporal de asistencias de los empleados de tu unidad'
-                    : 'Consulta de entradas y salidas de los empleados de tu unidad (solo lectura)')
-                : 'Calendario de entradas y salidas por unidad y empleado'}
-            </p>
-          </div>
-          <div className={styles.accionesHeader}>
-            {!esGerente && (
-              <button
-                className={styles.btnPermiso}
-                onClick={abrirModalPermiso}
-                title="Otorgar a los gerentes un permiso temporal para editar asistencias"
-              >
-                <IconoCandado abierto={permiso.clave === 'activo'} />
-                Permiso de gerentes
-                <span className={`${styles.puntoPermiso} ${styles[`puntoPermiso_${permiso.clave}`]}`} />
-              </button>
-            )}
+    <Layout
+      titulo="Asistencias"
+      subtitulo={esGerente
+        ? (puedeEditar
+            ? 'Consulta y corrección temporal de las marcas de tu unidad.'
+            : 'Entradas y salidas de tu unidad. Sólo lectura hasta que el administrador habilite la edición.')
+        : 'Calendario de entradas y salidas por unidad y empleado.'}
+      migas={[{ etiqueta: 'Asistencias' }]}
+      acciones={
+        <>
+          {!esGerente && (
             <button
-              className={styles.btnReporte}
-              onClick={descargarReporte}
-              disabled={!filtroSucursal || descargando}
-              title={filtroSucursal ? 'Descargar reporte PDF de la unidad' : 'Selecciona una unidad para generar el reporte'}
+              type="button" className="btn btn--neutro" onClick={abrirPermiso}
+              title="Habilitar temporalmente que los gerentes corrijan asistencias"
             >
-              {descargando ? <span className={styles.spinnerBtn} /> : <IconoDescargar />}
-              {descargando ? 'Generando…' : 'Descargar reporte PDF'}
+              <IconoCandado abierto={permiso.clave === 'activo'} />
+              Permiso de gerentes
             </button>
-          </div>
+          )}
+          <button
+            type="button" className="btn btn--primario"
+            onClick={descargarReporte}
+            disabled={!unidad || descargando}
+            title={unidad ? 'Descargar el reporte PDF de la unidad' : 'Elige una unidad para generar el reporte'}
+          >
+            {descargando ? <><span className="spinner" /> Generando…</> : <><IconoDescargar /> Reporte PDF</>}
+          </button>
+        </>
+      }
+    >
+      {errorBase && (
+        <div className="aviso aviso--error" role="alert">
+          <IconoAlerta /><span>{errorBase}</span>
+        </div>
+      )}
+
+      {esGerente && puedeEditar && (
+        <div className="aviso aviso--exito">
+          <IconoCandado abierto />
+          <span>
+            <strong>Edición habilitada.</strong> El administrador te dio permiso para corregir asistencias
+            {ventanaEdicion?.hasta ? <> hasta el <strong>{formatDatetime(ventanaEdicion.hasta)}</strong>.</> : '.'}
+          </span>
+        </div>
+      )}
+
+      <BarraFiltros
+        campos={[
+          {
+            etiqueta: 'Unidad',
+            valor: unidad,
+            onChange: cambiarUnidad,
+            desactivado: esGerente,
+            opciones: [
+              ...(esGerente ? [] : [{ valor: '', texto: 'Elige una unidad…' }]),
+              ...sucursales.map(s => ({ valor: String(s.id), texto: s.nombre })),
+            ],
+          },
+          {
+            etiqueta: 'Empleado',
+            valor: empleadoSel,
+            onChange: v => setFiltro('empleado', v),
+            desactivado: !unidad,
+            opciones: [
+              { valor: '', texto: unidad ? 'Elige un empleado…' : 'Primero elige una unidad' },
+              ...empleadosUnidad.map(e => ({ valor: String(e.id), texto: e.nombre })),
+            ],
+          },
+        ]}
+      />
+
+      <div className={`${styles.leyenda} no-imprimir`}>
+        <span className={styles.leyendaItem}><i className={`${styles.punto} ${styles.puntoCompleta}`} /> Completa</span>
+        <span className={styles.leyendaItem}><i className={`${styles.punto} ${styles.puntoIncompleta}`} /> Incompleta</span>
+        <span className={styles.leyendaItem}><i className={`${styles.punto} ${styles.puntoJustificada}`} /> Justificada</span>
+        <span className={styles.leyendaItem}><i className={`${styles.punto} ${styles.puntoSinDatos}`} /> Sin registro</span>
+      </div>
+
+      <section className={styles.calendario}>
+        <div className={styles.barraMes}>
+          <button type="button" className={styles.btnMes} onClick={() => cambiarMes(-1)} aria-label="Mes anterior">
+            <IconoChevron dir="izquierda" tamano={16} />
+          </button>
+          <h2 className={styles.tituloMes}>{NOMBRES_MES[numMes - 1]} {anio}</h2>
+          <button type="button" className={styles.btnMes} onClick={() => cambiarMes(1)} aria-label="Mes siguiente">
+            <IconoChevron dir="derecha" tamano={16} />
+          </button>
         </div>
 
-        {/* Aviso al gerente cuando tiene permiso de edición vigente */}
-        {esGerente && puedeEditar && (
-          <div className={styles.avisoEdicion}>
-            <IconoCandado abierto />
-            <span>
-              <strong>Edición habilitada.</strong>{' '}
-              El administrador otorgó permiso para editar asistencias
-              {ventanaEdicion?.hasta ? <> hasta el <strong>{formatDatetime(ventanaEdicion.hasta)}</strong>.</> : '.'}
-            </span>
-          </div>
-        )}
+        {!empleadoSel ? (
+          <EstadoDato
+            estado="vacio"
+            icono={IconoCalendario}
+            titulo="Elige una unidad y un empleado"
+            texto="El calendario mostrará sus entradas, salidas y justificaciones del mes."
+          />
+        ) : (
+          <div className={styles.rejilla}>
+            {cargandoMes && <div className={styles.velo}><span className="spinner spinner--lg" /></div>}
 
-        {/* Filtros */}
-        <div className={styles.filtros}>
-          <div className={styles.campoFiltro}>
-            <label className={styles.etiquetaFiltro}>Unidad</label>
-            <select className={styles.selectFiltro} value={filtroSucursal} onChange={e => cambiarSucursal(e.target.value)} disabled={esGerente}>
-              {!esGerente && <option value="">— Selecciona una unidad —</option>}
-              {sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-            </select>
-          </div>
-
-          <div className={styles.campoFiltro}>
-            <label className={styles.etiquetaFiltro}>Empleado</label>
-            <select className={styles.selectFiltro} value={empleadoSel} onChange={e => setEmpleadoSel(e.target.value)} disabled={!filtroSucursal}>
-              <option value="">{filtroSucursal ? '— Selecciona un empleado —' : 'Primero elige una unidad'}</option>
-              {empleadosUnidad.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {/* Leyenda */}
-        <div className={styles.leyenda}>
-          <span className={styles.leyendaItem}><i className={`${styles.punto} ${styles.puntoCompleta}`} /> Completa</span>
-          <span className={styles.leyendaItem}><i className={`${styles.punto} ${styles.puntoIncompleta}`} /> Incompleta</span>
-          <span className={styles.leyendaItem}><i className={`${styles.punto} ${styles.puntoJustificada}`} /> Justificada</span>
-          <span className={styles.leyendaItem}><i className={`${styles.punto} ${styles.puntoSinDatos}`} /> Sin registro</span>
-        </div>
-
-        {/* Calendario */}
-        <div className={styles.calendarioCard}>
-          <div className={styles.calendarioBarra}>
-            <button className={styles.btnMes} onClick={() => cambiarMes(-1)} aria-label="Mes anterior"><IconoChevron dir="left" /></button>
-            <h2 className={styles.tituloMes}>{NOMBRES_MES[numMes - 1]} {anio}</h2>
-            <button className={styles.btnMes} onClick={() => cambiarMes(1)} aria-label="Mes siguiente"><IconoChevron dir="right" /></button>
-          </div>
-
-          {!empleadoSel ? (
-            <div className={styles.vacioCalendario}>
-              <IconoCalendario />
-              <p>Selecciona una unidad y un empleado para ver su calendario de asistencias.</p>
-            </div>
-          ) : (
-            <div className={styles.calendarioWrap}>
-              {cargandoMes && <div className={styles.overlayCarga}><div className={styles.spinner} /></div>}
-
-              <div className={styles.gridSemana}>
-                {DIAS_SEMANA.map(d => <div key={d} className={styles.cabeceraDia}>{d}</div>)}
-              </div>
-
-              {semanas.map((semana, i) => (
-                <div key={i} className={styles.gridSemana}>
-                  {semana.map((celda, j) => {
-                    if (!celda) return <div key={j} className={styles.celdaVacia} />;
-                    const dia = diasMes[celda.fecha];
-                    const estado = estadoDia(dia);
-                    const esHoy = celda.fecha === HOY_STR;
-                    const esFuturo = celda.fecha > HOY_STR;
-                    return (
-                      <button
-                        key={j}
-                        className={`${styles.celda} ${styles[`celda_${estado}`]} ${esHoy ? styles.celdaHoy : ''} ${esFuturo ? styles.celdaFuturo : ''}`}
-                        onClick={() => abrirDia(celda)}
-                      >
-                        <span className={styles.filaNumero}>
-                          <span className={styles.numeroDia}>{celda.dia}</span>
-                          {dia?.corregido && <span className={styles.marcaCorregido} title="Día corregido por el administrador">✎</span>}
-                        </span>
-                        {dia?.justificacion ? (
-                          <span className={styles.etiquetaJust}>{ETIQUETA_JUST[dia.justificacion.tipo]}</span>
-                        ) : (dia?.entrada || dia?.salida) ? (
-                          <span className={styles.horario}>
-                            <span className={styles.horaE}>{dia.entrada || '—'}</span>
-                            <span className={styles.horaS}>{dia.salida || '—'}</span>
-                          </span>
-                        ) : (
-                          <span className={styles.sinRegistro}>{esFuturo ? '' : 'Sin registro'}</span>
-                        )}
-                      </button>
-                    );
-                  })}
+            <div className={styles.semana}>
+              {DIAS_SEMANA.map(d => (
+                <div
+                  key={d.iso}
+                  className={`${styles.cabeceraDia} ${diasLaborales.has(d.iso) ? '' : styles.cabeceraDiaLibre}`}
+                >
+                  {d.corta}
                 </div>
               ))}
             </div>
-          )}
-        </div>
 
-        {/* Resumen ejecutivo por empleado */}
-        {empleadoSel && resumen && (
-          <section className={styles.resumenSeccion}>
-            <div className={styles.resumenHeader}>
-              <h2 className={styles.resumenTitulo}>Resumen ejecutivo</h2>
-              <p className={styles.resumenSub}>
-                {empleadoActual?.nombre} · {NOMBRES_MES[numMes - 1]} {anio}
-              </p>
-            </div>
+            {semanas.map((semana, i) => (
+              <div key={i} className={styles.semana}>
+                {semana.map((celda, j) => {
+                  if (!celda) return <div key={j} className={styles.celdaVacia} />;
+                  const dia = diasMes[celda.fecha];
+                  const estado = estadoDia(dia);
+                  const esHoy = celda.fecha === HOY_STR;
+                  const esFuturo = celda.fecha > HOY_STR;
+                  const esLaboral = diasLaborales.has(isoDeFecha(celda.fecha));
+                  return (
+                    <button
+                      key={j}
+                      type="button"
+                      className={[
+                        styles.celda,
+                        styles[`celda_${estado}`],
+                        esHoy ? styles.celdaHoy : '',
+                        esFuturo ? styles.celdaFuturo : '',
+                        !esLaboral && !esFuturo ? styles.celdaNoLaboral : '',
+                      ].filter(Boolean).join(' ')}
+                      onClick={() => abrirDia(celda)}
+                      aria-label={`${celda.dia} de ${NOMBRES_MES[numMes - 1]}`}
+                    >
+                      <span className={styles.filaNumero}>
+                        <span className={styles.numeroDia}>{celda.dia}</span>
+                        {dia?.corregido && <i className={styles.corregido} title="Día corregido a mano" />}
+                      </span>
 
-            {/* KPIs del mes */}
-            <div className={styles.kpiGrid}>
-              <div className={styles.kpiCard}>
-                <span className={styles.kpiValor}>{formatearHoras(resumen.total.minutos)}</span>
-                <span className={styles.kpiEtiqueta}>Horas trabajadas · mes</span>
-              </div>
-              <div className={`${styles.kpiCard} ${resumen.total.faltas > 0 ? styles.kpiCardAlerta : ''}`}>
-                <span className={styles.kpiValor}>{resumen.total.faltas}</span>
-                <span className={styles.kpiEtiqueta}>Faltas · mes</span>
-              </div>
-              <div className={styles.kpiCard}>
-                <span className={styles.kpiValor}>{resumen.total.completos}</span>
-                <span className={styles.kpiEtiqueta}>Días completos</span>
-              </div>
-              <div className={styles.kpiCard}>
-                <span className={styles.kpiValor}>{resumen.total.justificados}</span>
-                <span className={styles.kpiEtiqueta}>Días justificados</span>
-              </div>
-            </div>
-
-            {/* Desglose semanal */}
-            <div className={styles.tablaWrap}>
-              <table className={styles.tablaResumen}>
-                <thead>
-                  <tr>
-                    <th>Semana</th>
-                    <th>Horas trabajadas</th>
-                    <th>Completos</th>
-                    <th>Incompletos</th>
-                    <th>Justificados</th>
-                    <th>Faltas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {resumen.semanasResumen.map((s, i) => (
-                    <tr key={i} className={s.contieneHoy ? styles.filaActual : ''}>
-                      <td>
-                        <span className={styles.semanaRango}>Día {s.primera.dia}–{s.ultima.dia}</span>
-                        {s.contieneHoy && <span className={styles.badgeActual}>Actual</span>}
-                      </td>
-                      <td className={styles.celHoras}>{formatearHoras(s.minutos)}</td>
-                      <td>{s.completos}</td>
-                      <td>{s.incompletos}</td>
-                      <td>{s.justificados}</td>
-                      <td className={s.faltas > 0 ? styles.celFalta : ''}>{s.faltas}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td>Total del mes</td>
-                    <td className={styles.celHoras}>{formatearHoras(resumen.total.minutos)}</td>
-                    <td>{resumen.total.completos}</td>
-                    <td>{resumen.total.incompletos}</td>
-                    <td>{resumen.total.justificados}</td>
-                    <td className={resumen.total.faltas > 0 ? styles.celFalta : ''}>{resumen.total.faltas}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-
-            <p className={styles.resumenNota}>
-              Las horas se calculan como la diferencia entre la primera entrada y la última salida de cada día.
-              Una <strong>falta</strong> es un día laboral de la unidad ya transcurrido sin registro ni justificación.
-              Días laborales de esta unidad: <strong>{etiquetaDiasLaborales}</strong>.
-            </p>
-          </section>
-        )}
-      </main>
-
-      <Footer />
-
-      {/* Modal de día */}
-      {diaModal && (
-        <div className={styles.overlay} onMouseDown={e => e.target === e.currentTarget && cerrarModal()}>
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <div>
-                <h2 className={styles.modalTitulo}>
-                  {new Date(`${diaModal.fecha}T00:00:00`).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                </h2>
-                <p className={styles.modalSub}>{empleadoActual?.nombre}</p>
-              </div>
-              <button className={styles.modalCerrar} onClick={cerrarModal} aria-label="Cerrar"><IconoCerrar /></button>
-            </div>
-
-            <div className={styles.modalCuerpo}>
-              <div className={styles.filaHoras}>
-                <div className={styles.campo}>
-                  <label className={styles.etiqueta}>Entrada</label>
-                  <input type="time" className={styles.input} value={form.entrada} onChange={e => setForm(p => ({ ...p, entrada: e.target.value }))} disabled={guardando || !puedeEditar} />
-                </div>
-                <div className={styles.campo}>
-                  <label className={styles.etiqueta}>Salida</label>
-                  <input type="time" className={styles.input} value={form.salida} onChange={e => setForm(p => ({ ...p, salida: e.target.value }))} disabled={guardando || !puedeEditar} />
-                </div>
-              </div>
-
-              {diasMes[diaModal.fecha]?.corregido && (
-                <div className={styles.avisoCorregido}>
-                  <strong>✎ Día corregido.</strong>{' '}
-                  Marcas originales del checador:{' '}
-                  <span className={styles.refOriginal}>
-                    {diasMes[diaModal.fecha].original?.entrada || '—'} / {diasMes[diaModal.fecha].original?.salida || '—'}
-                  </span>
-                  . Las marcas crudas no se modifican.
-                </div>
-              )}
-
-              <div className={styles.divisor}><span>Justificación</span></div>
-
-              <div className={styles.campo}>
-                <label className={styles.etiqueta}>Tipo</label>
-                <select className={styles.input} value={form.tipo} onChange={e => setForm(p => ({ ...p, tipo: e.target.value }))} disabled={guardando || !puedeEditar}>
-                  <option value="">Sin justificación</option>
-                  {TIPOS_JUSTIFICACION.map(t => <option key={t.valor} value={t.valor}>{t.etiqueta}</option>)}
-                </select>
-                {puedeEditar && (
-                  <span className={styles.inputHint}>
-                    Justifica el día como vacaciones, incapacidad u otro motivo.
-                  </span>
-                )}
-              </div>
-
-              {form.tipo && (
-                <div className={styles.campo}>
-                  <label className={styles.etiqueta}>Nota (opcional)</label>
-                  <input type="text" className={styles.input} placeholder="Ej. Incapacidad IMSS folio 12345" maxLength={300} value={form.nota} onChange={e => setForm(p => ({ ...p, nota: e.target.value }))} disabled={guardando || !puedeEditar} />
-                </div>
-              )}
-            </div>
-
-            <div className={styles.modalPie}>
-              {!puedeEditar ? (
-                <button className={styles.btnCancelar} onClick={cerrarModal}>Cerrar</button>
-              ) : (
-                <>
-                  {/* Revertir borra la corrección (puede ser del admin): solo administrador. */}
-                  {!esGerente && diasMes[diaModal.fecha]?.corregido && (
-                    <button className={styles.btnRevertir} onClick={revertirDia} disabled={guardando}>
-                      Revertir a checador
+                      {dia?.justificacion ? (
+                        <span className={styles.etiquetaJust}>{ETIQUETA_JUST[dia.justificacion.tipo]}</span>
+                      ) : (dia?.entrada || dia?.salida) ? (
+                        <span className={styles.horario}>
+                          <span className={styles.horaE}>{dia.entrada || '—'}</span>
+                          <span className={styles.horaS}>{dia.salida || '—'}</span>
+                        </span>
+                      ) : (
+                        <span className={styles.sinRegistro}>
+                          {esFuturo ? '' : esLaboral ? 'Sin registro' : 'Descanso'}
+                        </span>
+                      )}
                     </button>
-                  )}
-                  <button className={styles.btnCancelar} onClick={cerrarModal} disabled={guardando}>Cancelar</button>
-                  <button className={styles.btnGuardar} onClick={guardarDia} disabled={guardando}>
-                    {guardando ? <span className={styles.spinnerBtn} /> : 'Guardar día'}
-                  </button>
-                </>
-              )}
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {empleadoSel && resumen && (
+        <section className={styles.resumen}>
+          <h2 className="seccion__titulo">
+            Resumen del mes · {empleadoActual?.nombre}
+          </h2>
+
+          <div className={styles.resumenBanda}>
+            <div className={styles.horasCifra}>
+              <span className={styles.horasNumero}>{formatearHoras(resumen.total.minutos)}</span>
+              <span className={styles.horasEtiqueta}>trabajadas en {NOMBRES_MES[numMes - 1].toLowerCase()}</span>
+            </div>
+            <div className={styles.desglose}>
+              <span className={`${styles.desgloseItem} ${resumen.total.faltas > 0 ? styles.faltasAlerta : ''}`}>
+                <span className={styles.desgloseNumero}>{resumen.total.faltas}</span>
+                <span className={styles.desgloseEtiqueta}>Faltas</span>
+              </span>
+              <span className={styles.desgloseItem}>
+                <span className={styles.desgloseNumero}>{resumen.total.completos}</span>
+                <span className={styles.desgloseEtiqueta}>Completos</span>
+              </span>
+              <span className={styles.desgloseItem}>
+                <span className={styles.desgloseNumero}>{resumen.total.incompletos}</span>
+                <span className={styles.desgloseEtiqueta}>Incompletos</span>
+              </span>
+              <span className={styles.desgloseItem}>
+                <span className={styles.desgloseNumero}>{resumen.total.justificados}</span>
+                <span className={styles.desgloseEtiqueta}>Justificados</span>
+              </span>
             </div>
           </div>
-        </div>
+
+          <div className={`tabla-marco ${styles.tablaSemanas}`}>
+            <table className="tabla">
+              <thead>
+                <tr>
+                  <th scope="col">Semana</th>
+                  <th scope="col" className="th-num">Horas</th>
+                  <th scope="col" className="th-num">Completos</th>
+                  <th scope="col" className="th-num">Incompletos</th>
+                  <th scope="col" className="th-num">Justificados</th>
+                  <th scope="col" className="th-num">Faltas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resumen.porSemana.map((s, i) => (
+                  <tr key={i} className={s.contieneHoy ? styles.filaActual : ''}>
+                    <td>
+                      Día {s.primera.dia}–{s.ultima.dia}
+                      {s.contieneHoy && <span className={styles.badgeActual}>En curso</span>}
+                    </td>
+                    <td className={`col-num ${styles.celHoras}`}>{formatearHoras(s.minutos)}</td>
+                    <td className="col-num">{s.completos}</td>
+                    <td className="col-num">{s.incompletos}</td>
+                    <td className="col-num">{s.justificados}</td>
+                    <td className={`col-num ${s.faltas > 0 ? styles.celFalta : ''}`}>{s.faltas}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td><strong>Total del mes</strong></td>
+                  <td className={`col-num ${styles.celHoras}`}>{formatearHoras(resumen.total.minutos)}</td>
+                  <td className="col-num">{resumen.total.completos}</td>
+                  <td className="col-num">{resumen.total.incompletos}</td>
+                  <td className="col-num">{resumen.total.justificados}</td>
+                  <td className={`col-num ${resumen.total.faltas > 0 ? styles.celFalta : ''}`}>{resumen.total.faltas}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <p className={styles.nota}>
+            Las horas son la diferencia entre la primera entrada y la última salida de cada día.
+            Una <strong>falta</strong> es un día laboral ya transcurrido sin registro ni justificación.
+            Días laborales de esta unidad: <strong>{etiquetaDiasLaborales}</strong>.
+          </p>
+        </section>
       )}
 
-      {/* Modal de permiso temporal de edición para gerentes (admin) */}
-      {modalPermiso && (
-        <div className={styles.overlay} onMouseDown={e => e.target === e.currentTarget && cerrarModalPermiso()}>
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <div>
-                <h2 className={styles.modalTituloPermiso}>Permiso de edición para gerentes</h2>
-                <p className={styles.modalSub}>Asistencias · todas las unidades</p>
-              </div>
-              <button className={styles.modalCerrar} onClick={cerrarModalPermiso} aria-label="Cerrar"><IconoCerrar /></button>
-            </div>
-
-            <div className={styles.modalCuerpo}>
-              <p className={styles.permisoDesc}>
-                Durante el intervalo indicado, cada gerente podrá corregir entradas/salidas y
-                justificar días de los empleados de <strong>su propia unidad</strong>. Al terminar
-                el intervalo, el acceso vuelve a ser de solo lectura automáticamente.
-              </p>
-
-              <div className={`${styles.estadoPermiso} ${styles[`estadoPermiso_${permiso.clave}`]}`}>
-                <IconoCandado abierto={permiso.clave === 'activo'} />
-                {permiso.texto}
-              </div>
-
-              <div className={`${styles.filaHoras} ${styles.filaPermiso}`}>
-                <div className={styles.campo}>
-                  <label className={styles.etiqueta}>Inicio *</label>
-                  <input
-                    type="datetime-local"
-                    className={styles.input}
-                    value={formPermiso.desde}
-                    onChange={e => setFormPermiso(p => ({ ...p, desde: e.target.value }))}
-                    disabled={guardandoPermiso}
-                  />
-                </div>
-                <div className={styles.campo}>
-                  <label className={styles.etiqueta}>Término *</label>
-                  <input
-                    type="datetime-local"
-                    className={styles.input}
-                    value={formPermiso.hasta}
-                    onChange={e => setFormPermiso(p => ({ ...p, hasta: e.target.value }))}
-                    disabled={guardandoPermiso}
-                    min={formPermiso.desde}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.modalPie}>
-              {(ventanaEdicion?.desde || ventanaEdicion?.hasta || ventanaEdicion?.abierta) && (
-                <button className={styles.btnRevocarPermiso} onClick={revocarPermiso} disabled={guardandoPermiso}>
-                  Revocar permiso
+      {/* ── Modal de día ── */}
+      {diaModal && (
+        <Modal
+          titulo={new Date(`${diaModal.fecha}T00:00:00`).toLocaleDateString('es-MX',
+            { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          subtitulo={empleadoActual?.nombre}
+          onCerrar={() => setDiaModal(null)}
+          bloqueado={guardando}
+          pie={puedeEditar ? (
+            <>
+              {/* Revertir borra una corrección que pudo hacer el administrador. */}
+              {!esGerente && diaSeleccionado?.corregido && (
+                <button type="button" className="btn btn--fantasma" onClick={revertirDia} disabled={guardando}>
+                  Revertir al checador
                 </button>
               )}
-              <button className={styles.btnCancelar} onClick={cerrarModalPermiso} disabled={guardandoPermiso}>Cancelar</button>
-              <button className={styles.btnGuardar} onClick={otorgarPermiso} disabled={guardandoPermiso}>
-                {guardandoPermiso ? <span className={styles.spinnerBtn} /> : 'Otorgar permiso'}
+              <button type="button" className="btn btn--neutro" onClick={() => setDiaModal(null)} disabled={guardando}>
+                Cancelar
               </button>
+              <button type="submit" form="form-dia" className="btn btn--primario" disabled={guardando}>
+                {guardando && <span className="spinner" />} Guardar día
+              </button>
+            </>
+          ) : (
+            <button type="button" className="btn btn--neutro" onClick={() => setDiaModal(null)}>Cerrar</button>
+          )}
+        >
+          <form id="form-dia" onSubmit={guardarDia} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 'var(--e4)' }}>
+            <div className={styles.filaDoble}>
+              <Campo etiqueta="Entrada" id="d-entrada">
+                <input
+                  id="d-entrada" type="time" className="control"
+                  value={form.entrada} onChange={e => setForm(p => ({ ...p, entrada: e.target.value }))}
+                  disabled={guardando || !puedeEditar} data-foco-inicial
+                />
+              </Campo>
+              <Campo etiqueta="Salida" id="d-salida" error={errores.salida}>
+                <input
+                  id="d-salida" type="time"
+                  className={`control${errores.salida ? ' control--invalido' : ''}`}
+                  value={form.salida}
+                  onChange={e => { setForm(p => ({ ...p, salida: e.target.value })); setErrores({}); }}
+                  disabled={guardando || !puedeEditar}
+                />
+              </Campo>
             </div>
-          </div>
-        </div>
+
+            {diaSeleccionado?.corregido && (
+              <div className="aviso aviso--atencion">
+                <IconoInfo />
+                <span>
+                  Día corregido a mano. Marcas originales del checador:{' '}
+                  <span className={styles.original}>
+                    {diaSeleccionado.original?.entrada || '—'} / {diaSeleccionado.original?.salida || '—'}
+                  </span>. Las marcas crudas no se modifican.
+                </span>
+              </div>
+            )}
+
+            <p className={styles.divisor}>Justificación</p>
+
+            <Campo
+              etiqueta="Tipo" id="d-tipo"
+              pista={puedeEditar ? 'Un día justificado no cuenta como falta en el resumen.' : undefined}
+            >
+              <select
+                id="d-tipo" className="control" value={form.tipo}
+                onChange={e => setForm(p => ({ ...p, tipo: e.target.value }))}
+                disabled={guardando || !puedeEditar}
+              >
+                <option value="">Sin justificación</option>
+                {TIPOS_JUSTIFICACION.map(t => <option key={t.valor} value={t.valor}>{t.etiqueta}</option>)}
+              </select>
+            </Campo>
+
+            {form.tipo && (
+              <Campo etiqueta="Nota" id="d-nota" opcional>
+                <input
+                  id="d-nota" type="text" className="control" maxLength={300}
+                  placeholder="Ej. Incapacidad IMSS folio 12345"
+                  value={form.nota} onChange={e => setForm(p => ({ ...p, nota: e.target.value }))}
+                  disabled={guardando || !puedeEditar}
+                />
+              </Campo>
+            )}
+          </form>
+        </Modal>
       )}
-    </div>
+
+      {/* ── Modal de permiso ── */}
+      {modalPermiso && (
+        <Modal
+          titulo="Permiso de edición para gerentes"
+          subtitulo="Aplica a todas las unidades"
+          onCerrar={() => setModalPermiso(false)}
+          bloqueado={guardandoPermiso}
+          pie={
+            <>
+              {(ventanaEdicion?.desde || ventanaEdicion?.abierta) && (
+                <button type="button" className="btn btn--peligro" onClick={revocarPermiso} disabled={guardandoPermiso}>
+                  Revocar
+                </button>
+              )}
+              <button type="button" className="btn btn--neutro" onClick={() => setModalPermiso(false)} disabled={guardandoPermiso}>
+                Cancelar
+              </button>
+              <button type="submit" form="form-permiso" className="btn btn--primario" disabled={guardandoPermiso}>
+                {guardandoPermiso && <span className="spinner" />} Otorgar permiso
+              </button>
+            </>
+          }
+        >
+          <form id="form-permiso" onSubmit={otorgarPermiso} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 'var(--e4)' }}>
+            <div className={`aviso aviso--${permiso.clave === 'activo' ? 'exito' : 'atencion'}`} style={{ marginBottom: 0 }}>
+              <IconoCandado abierto={permiso.clave === 'activo'} />
+              <span>{permiso.texto}</span>
+            </div>
+
+            <p className="pista">
+              Durante el intervalo indicado, cada gerente podrá corregir entradas y salidas y justificar
+              días de los empleados de <strong>su propia unidad</strong>. Al terminar, el acceso vuelve
+              a ser de sólo lectura automáticamente.
+            </p>
+
+            <div className={styles.filaDoble}>
+              <Campo etiqueta="Inicio" id="p-desde" error={erroresPermiso.desde}>
+                <input
+                  id="p-desde" type="datetime-local"
+                  className={`control${erroresPermiso.desde ? ' control--invalido' : ''}`}
+                  value={formPermiso.desde}
+                  onChange={e => setFormPermiso(p => ({ ...p, desde: e.target.value }))}
+                  disabled={guardandoPermiso} data-foco-inicial
+                />
+              </Campo>
+              <Campo etiqueta="Término" id="p-hasta" error={erroresPermiso.hasta}>
+                <input
+                  id="p-hasta" type="datetime-local"
+                  className={`control${erroresPermiso.hasta ? ' control--invalido' : ''}`}
+                  value={formPermiso.hasta}
+                  min={formPermiso.desde}
+                  onChange={e => setFormPermiso(p => ({ ...p, hasta: e.target.value }))}
+                  disabled={guardandoPermiso}
+                />
+              </Campo>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </Layout>
   );
 }
