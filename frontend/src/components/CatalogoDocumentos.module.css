@@ -1,0 +1,106 @@
+/* ─────────────────────────────────────────────────────────────
+   Catálogo de proveedores / unidades — fichas, no tabla:
+   la acción principal es entrar al expediente, y una ficha da
+   un blanco de clic del tamaño de la fila entera.
+   ───────────────────────────────────────────────────────────── */
+.barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e4);
+  flex-wrap: wrap;
+  margin-bottom: var(--e4);
+}
+.conteo { font-size: 13.5px; color: var(--color-texto-suave); }
+.conteo strong { color: var(--color-texto); font-variant-numeric: tabular-nums; }
+.conteoMuted { color: var(--texto-muted); }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: var(--e3);
+  list-style: none;
+}
+
+.ficha {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--color-blanco);
+  border: var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-sm);
+  transition: border-color 0.15s;
+}
+.ficha:hover { border-color: var(--color-naranja); }
+.ficha:focus-within { border-color: var(--color-naranja); }
+.fichaInactiva { background: var(--color-blanco-hueso); }
+.fichaInactiva .inicial { background: var(--color-gris-claro); color: var(--color-gris-medio); }
+
+.fichaEnlace {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  flex: 1;
+  min-width: 0;
+  padding: var(--e4);
+  color: inherit;
+}
+.fichaEnlace:hover { color: inherit; }
+
+.inicial {
+  display: flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px;
+  border-radius: var(--radio-sm);
+  background: var(--tinte-naranja);
+  color: var(--color-naranja-oscuro);
+  font-size: 15px; font-weight: 700;
+  flex-shrink: 0;
+}
+
+.fichaTexto { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.35; }
+.fichaNombre {
+  font-size: 14.5px; font-weight: 600; color: var(--color-texto);
+  display: flex; align-items: center; gap: var(--e2); flex-wrap: wrap;
+}
+.fichaMeta { font-size: 12px; color: var(--texto-muted); }
+
+.chipInactivo {
+  padding: 1px 6px;
+  border-radius: var(--radio-pildora);
+  background: var(--color-gris-claro);
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--color-texto-suave);
+}
+
+.fichaDocs { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+.totalDocs { font-size: 12px; color: var(--color-texto-suave); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sinDocs { font-size: 12px; color: var(--texto-muted); white-space: nowrap; }
+/* La lámpara de calor también aquí: lo que espera revisión se señala en ámbar. */
+.pendientes {
+  padding: 1px 7px;
+  border-radius: var(--radio-pildora);
+  background: var(--tinte-ambar);
+  color: var(--color-ambar-texto);
+  font-size: 11px; font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.fichaFlecha { color: var(--color-gris); flex-shrink: 0; }
+.ficha:hover .fichaFlecha { color: var(--color-naranja); }
+
+.fichaAcciones {
+  display: flex;
+  align-items: center;
+  gap: var(--e1);
+  padding: 0 var(--e3) 0 0;
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .grid { grid-template-columns: 1fr; }
+  .fichaEnlace { flex-wrap: wrap; padding: var(--e3); }
+  .fichaDocs { align-items: flex-start; flex-basis: 100%; flex-direction: row; gap: var(--e2); }
+}

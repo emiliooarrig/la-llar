@@ -1,0 +1,10 @@
+.archivo { display: flex; align-items: center; gap: var(--e2); min-width: 0; }
+
+.resumen {
+  margin-bottom: var(--e4);
+  font-size: 13px;
+  color: var(--color-texto-suave);
+}
+.resumen strong { color: var(--color-texto); font-variant-numeric: tabular-nums; }
+.rechazados { color: var(--color-error); display: inline-flex; align-items: center; gap: 5px; }
+.rechazados strong { color: var(--color-error); }

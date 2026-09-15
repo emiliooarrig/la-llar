@@ -1,0 +1,159 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;           /* por encima de los modales de la app */
+  background-color: rgba(45, 41, 38, 0.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.visor {
+  display: flex;
+  flex-direction: column;
+  width: min(1000px, 100%);
+  height: 100%;
+  max-height: 900px;
+  background: var(--color-blanco);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-lg);
+  overflow: hidden;
+}
+
+.barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1.5px solid var(--color-gris);
+  background-color: var(--color-gris-claro);
+}
+
+.nombre {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-texto);
+  /* min-width: 0 para que el nombre largo encoja en vez de empujar los botones. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btnBarra {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1.5px solid var(--color-gris);
+  border-radius: var(--radio-sm);
+  background-color: var(--color-blanco);
+  color: var(--color-texto);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btnBarra:hover {
+  border-color: var(--color-naranja);
+  color: var(--color-naranja);
+}
+
+.btnCerrar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid var(--color-gris);
+  border-radius: var(--radio-sm);
+  background-color: var(--color-blanco);
+  color: var(--color-texto-suave);
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btnCerrar:hover {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.btnBarra:focus-visible,
+.btnCerrar:focus-visible {
+  outline: 2px solid var(--color-naranja);
+  outline-offset: 2px;
+}
+
+.lienzo {
+  flex: 1;
+  min-height: 0;           /* deja que el iframe ocupe el alto restante */
+  background-color: var(--color-gris-claro);
+}
+
+.marco {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.estado {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--color-texto-suave);
+  font-size: 14px;
+  padding: 24px;
+  text-align: center;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--color-gris);
+  border-top-color: var(--color-naranja);
+  border-radius: 50%;
+  animation: girar 0.7s linear infinite;
+}
+
+@keyframes girar {
+  to { transform: rotate(360deg); }
+}
+
+.btnReintentar {
+  padding: 8px 18px;
+  border: 1.5px solid var(--color-gris);
+  border-radius: var(--radio-sm);
+  background-color: var(--color-blanco);
+  color: var(--color-texto);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ── Móvil: el visor ocupa toda la pantalla ─────────────── */
+@media (max-width: 768px) {
+  .overlay { padding: 0; }
+  .visor { max-height: none; border-radius: 0; }
+}
+
+@media (max-width: 480px) {
+  .barra { padding: 10px 12px; gap: 8px; }
+  .nombre { font-size: 13px; }
+  .btnBarra { padding: 7px 10px; }
+  /* Sólo el icono: el nombre del archivo manda en una barra tan estrecha. */
+  .btnTexto { display: none; }
+}

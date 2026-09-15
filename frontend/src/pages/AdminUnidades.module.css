@@ -1,0 +1,20 @@
+.dias { display: flex; flex-wrap: wrap; gap: 6px; }
+.dia {
+  min-width: 46px;
+  padding: 7px 10px;
+  border: var(--borde);
+  border-radius: var(--radio-sm);
+  background: var(--color-blanco);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
+}
+.dia:hover:not(:disabled) { border-color: var(--color-gris-medio); color: var(--color-texto); }
+.diaActivo {
+  border-color: var(--color-naranja);
+  background-color: var(--color-naranja);
+  color: var(--color-blanco);
+}
+.diaActivo:hover:not(:disabled) { background-color: var(--color-naranja-oscuro); color: var(--color-blanco); }
+.dia:disabled { opacity: 0.5; }
