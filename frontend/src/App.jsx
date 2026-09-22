@@ -15,6 +15,7 @@ import AdminUnidades from './pages/AdminUnidades';
 import UnidadDetalle from './pages/UnidadDetalle';
 import MisUnidades from './pages/MisUnidades';
 import Historicos from './pages/Historicos';
+import Empresas from './pages/Empresas';
 import SinAcceso from './pages/SinAcceso';
 
 /** Cada rol aterriza en lo primero que necesita ver al abrir el sistema. */
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="/admin/usuarios" element={soloAdmin(<Usuarios />)} />
           <Route path="/admin/pendientes" element={soloAdmin(<Pendientes />)} />
           <Route path="/admin/historicos" element={soloAdmin(<Historicos />)} />
+          <Route path="/admin/empresas" element={soloAdmin(<Empresas />)} />
           <Route path="/admin/proveedores" element={soloAdmin(<AdminProveedores />)} />
           <Route path="/admin/proveedores/:id" element={soloAdmin(<ProveedorDetalle />)} />
           <Route path="/admin/unidades" element={soloAdmin(<AdminUnidades />)} />

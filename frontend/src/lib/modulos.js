@@ -1,6 +1,6 @@
 import {
   IconoAsistencias, IconoProveedores, IconoUnidades, IconoEmpleados,
-  IconoUsuarios, IconoDocumentos, IconoHistorico,
+  IconoUsuarios, IconoDocumentos, IconoHistorico, IconoEmpresa,
 } from '../components/Iconos';
 
 export const ETIQUETA_ROL = {
@@ -27,6 +27,7 @@ export const MODULOS = {
     { titulo: 'Empleados', desc: 'Alta, edición y baja de la plantilla.', to: '/admin/empleados', Icono: IconoEmpleados },
     { titulo: 'Usuarios', desc: 'Accesos al sistema: roles y credenciales.', to: '/admin/usuarios', Icono: IconoUsuarios },
     { titulo: 'Histórico', desc: 'Archivo permanente de documentos.', to: '/admin/historicos', Icono: IconoHistorico },
+    { titulo: 'Empresas', desc: 'Razones sociales a las que se factura.', to: '/admin/empresas', Icono: IconoEmpresa },
   ],
   gerente: [
     { titulo: 'Asistencias', desc: 'Entradas y salidas de tu unidad.', to: '/gerente/asistencias', Icono: IconoAsistencias },

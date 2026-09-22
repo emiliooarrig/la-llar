@@ -1,0 +1,13 @@
+/* Catálogo de empresas. Dos filas y cuatro columnas: casi todo lo que
+   necesita ya vive en los estilos comunes (tabla, insignias, acciones).
+   Aquí solo queda lo propio de esta tabla. */
+
+/* El nombre de la razón social es el dato que se busca al entrar; pesa
+   un punto más que el resto de la fila, como el nombre en Usuarios. */
+.nombre { font-weight: 600; color: var(--color-texto); }
+
+/* Conteo de unidades: mismo patrón que el "alcance" de Usuarios, para que
+   las dos tablas del panel se lean igual. */
+.unidades { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.unidades svg { color: var(--texto-muted); }
+.unidadesVacio { color: var(--texto-muted); }

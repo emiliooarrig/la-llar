@@ -16,6 +16,7 @@ const unidadesRoutes = require('./routes/unidades');
 const ventanasRoutes = require('./routes/ventanas');
 const webhookRoutes = require('./routes/webhook');
 const historicosRoutes = require('./routes/historicos');
+const empresasRoutes = require('./routes/empresas');
 
 const app = express();
 const PORT = process.env.PORT;
@@ -49,6 +50,7 @@ app.use('/api/unidades', unidadesRoutes);
 app.use('/api/ventanas', ventanasRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/historicos', historicosRoutes);
+app.use('/api/empresas', empresasRoutes);
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 

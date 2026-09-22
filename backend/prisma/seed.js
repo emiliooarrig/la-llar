@@ -23,6 +23,22 @@ async function main() {
   });
   console.log('Admin:', admin.email);
 
+  /* Catálogo de empresas: las dos entidades jurídicas que opera el negocio.
+   * No es dato de demostración sino estructura —una factura sin empresa no se
+   * puede clasificar—, por eso vive en el seed de producción y no en los
+   * scripts de muestra. El upsert va por `nombre` (único): correr el seed dos
+   * veces no duplica, y `update: {}` respeta a propósito el `activo` que el
+   * administrador haya puesto desde la UI, para que un re-seed tras un
+   * despliegue no reabra una empresa que el negocio dio de baja. */
+  for (const nombre of ['La Llar', 'Confia Alimentos']) {
+    const empresa = await prisma.empresas.upsert({
+      where: { nombre },
+      update: {},
+      create: { nombre, activo: true },
+    });
+    console.log('Empresa:', empresa.nombre);
+  }
+
   /* Ventanas de carga en su estado inicial (cerradas). */
   await prisma.ventanas_carga.upsert({ where: { modulo: 'proveedores' }, update: {}, create: { modulo: 'proveedores', abierta: false } });
   await prisma.ventanas_carga.upsert({ where: { modulo: 'unidades' },    update: {}, create: { modulo: 'unidades',    abierta: false } });

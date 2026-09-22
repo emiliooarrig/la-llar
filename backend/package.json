@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
+    "test": "node --test \"tests/**/*.test.js\"",
+    "test:watch": "node --test --watch \"tests/**/*.test.js\"",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:seed": "node prisma/seed.js",
+    "db:backfill-empresas": "node scripts/backfill_empresas_sucursales.js",
     "db:studio": "prisma studio"
   },
   "dependencies": {

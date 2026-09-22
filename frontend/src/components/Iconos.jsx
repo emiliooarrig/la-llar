@@ -22,6 +22,10 @@ export const IconoUnidades = p => <Svg {...p}><path d="M3 21h18M5 21V8l7-4 7 4v1
 export const IconoEmpleados = p => <Svg {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></Svg>;
 export const IconoUsuarios = p => <Svg {...p}><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" /></Svg>;
 export const IconoDocumentos = p => <Svg {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M9 13h6M9 17h4" /></Svg>;
+// Empresa (razón social): torre corporativa, distinta del tejado de
+// IconoUnidades, que es la cocina física. Aquí se distingue la entidad
+// jurídica del local donde se cocina.
+export const IconoEmpresa = p => <Svg {...p}><path d="M3 21h18M5 21V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v16" /><path d="M14 9h4a1 1 0 0 1 1 1v11" /><path d="M8 8h2M8 12h2M8 16h2" /></Svg>;
 export const IconoHistorico = p => <Svg {...p}><rect x="2" y="3" width="20" height="5" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4" /></Svg>;
 
 /* ── Navegación ───────────────────────────────────────────── */
