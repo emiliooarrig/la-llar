@@ -33,4 +33,41 @@ const loginLimiter = rateLimit({
   },
 });
 
-module.exports = { loginLimiter, LOGIN_MAX_INTENTOS, LOGIN_VENTANA_MS };
+/* Freno sobre el alta por link de proveedores (spec 001 HU-1).
+ *
+ * Estos endpoints son los únicos del sistema SIN `verificarToken`: quien los
+ * llama no se ha identificado todavía. Eso los convierte en el sitio natural
+ * para dos abusos: probar tokens de invitación a lo bruto hasta acertar uno,
+ * y crear cuentas en masa con un link filtrado.
+ *
+ * El límite es por IP y cuenta TODOS los intentos, no solo los fallidos: a
+ * diferencia del login, aquí un intento con éxito tampoco debería repetirse
+ * treinta veces desde la misma IP —una invitación se usa una vez—. La ventana
+ * es más larga y el cupo más corto que en el login por el mismo motivo.
+ *
+ * El token en sí es de 256 bits: el límite no es lo que hace inviable
+ * adivinarlo, es lo que evita que alguien lo intente sin coste. */
+const REGISTRO_VENTANA_MS = 60 * 60 * 1000; // 1 hora
+const REGISTRO_MAX_INTENTOS = 10;
+
+const registroLimiter = rateLimit({
+  windowMs: REGISTRO_VENTANA_MS,
+  limit: REGISTRO_MAX_INTENTOS,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  handler: (req, res) => {
+    const minutos = Math.max(1, Math.ceil(((req.rateLimit?.resetTime?.getTime() ?? 0) - Date.now()) / 60000));
+    return res.status(429).json({
+      error: `Demasiados intentos. Vuelve a intentarlo en ${minutos} minuto${minutos === 1 ? '' : 's'}.`,
+    });
+  },
+});
+
+module.exports = {
+  loginLimiter,
+  LOGIN_MAX_INTENTOS,
+  LOGIN_VENTANA_MS,
+  registroLimiter,
+  REGISTRO_MAX_INTENTOS,
+  REGISTRO_VENTANA_MS,
+};

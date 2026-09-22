@@ -1,6 +1,6 @@
 import {
   IconoAsistencias, IconoProveedores, IconoUnidades, IconoEmpleados,
-  IconoUsuarios, IconoDocumentos, IconoHistorico, IconoEmpresa,
+  IconoUsuarios, IconoDocumentos, IconoHistorico, IconoEmpresa, IconoFactura,
 } from '../components/Iconos';
 
 export const ETIQUETA_ROL = {
@@ -13,7 +13,7 @@ export const ETIQUETA_ROL = {
 export const INICIO_POR_ROL = {
   administrador: '/admin',
   gerente: '/gerente/asistencias',
-  proveedor: '/proveedor/documentos',
+  proveedor: '/proveedor/facturas',
 };
 
 /* Fuente única de la navegación: alimenta el rail lateral y las tarjetas
@@ -23,6 +23,7 @@ export const MODULOS = {
     { titulo: 'Asistencias', desc: 'Entradas y salidas por unidad.', to: '/admin/asistencias', Icono: IconoAsistencias },
     { titulo: 'Por revisar', desc: 'Documentos esperando aprobación.', to: '/admin/pendientes', Icono: IconoDocumentos, contador: 'pendientes' },
     { titulo: 'Proveedores', desc: 'Catálogo y documentos de proveedores.', to: '/admin/proveedores', Icono: IconoProveedores },
+    { titulo: 'Resumen de facturas', desc: 'Facturas aprobadas y fechas de pago.', to: '/admin/resumen-facturas', Icono: IconoFactura },
     { titulo: 'Unidades', desc: 'Cocinas, sucursales y su papeleo.', to: '/admin/unidades', Icono: IconoUnidades },
     { titulo: 'Empleados', desc: 'Alta, edición y baja de la plantilla.', to: '/admin/empleados', Icono: IconoEmpleados },
     { titulo: 'Usuarios', desc: 'Accesos al sistema: roles y credenciales.', to: '/admin/usuarios', Icono: IconoUsuarios },
@@ -34,6 +35,7 @@ export const MODULOS = {
     { titulo: 'Unidades', desc: 'Documentos de tu cocina.', to: '/gerente/unidades', Icono: IconoUnidades },
   ],
   proveedor: [
+    { titulo: 'Mis facturas', desc: 'Sube tus facturas y sigue su revisión.', to: '/proveedor/facturas', Icono: IconoFactura },
     { titulo: 'Mis documentos', desc: 'Sube y consulta tu documentación.', to: '/proveedor/documentos', Icono: IconoDocumentos },
   ],
 };

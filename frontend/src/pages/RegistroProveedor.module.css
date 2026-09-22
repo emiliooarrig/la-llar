@@ -1,0 +1,25 @@
+/* Alta de proveedor por link. Comparte el armazón de Login (misma página
+   pública, mismo panel centrado) y solo añade lo suyo: el formulario es más
+   largo, así que se parte en dos columnas cuando hay sitio. */
+
+.rejilla { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e4); }
+.anchoCompleto { grid-column: 1 / -1; }
+
+@media (max-width: 560px) {
+  .rejilla { grid-template-columns: 1fr; }
+}
+
+/* Estado terminal de la página: link inválido, caducado o alta completada.
+   Ocupa el panel entero porque no hay nada más que hacer en él. */
+.desenlace { text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--e3); }
+.desenlaceIcono {
+  width: 52px; height: 52px; border-radius: 50%;
+  display: grid; place-items: center;
+}
+.desenlaceIcono svg { width: 26px; height: 26px; }
+.desenlaceExito { background: var(--tinte-exito); color: var(--color-exito); }
+.desenlaceError { background: var(--tinte-error); color: var(--color-error); }
+.desenlaceTitulo { font-size: 16px; font-weight: 600; color: var(--color-texto); }
+.desenlaceTexto { font-size: 13.5px; color: var(--color-texto-suave); max-width: 44ch; line-height: 1.55; }
+
+.cargando { text-align: center; color: var(--texto-muted); font-size: 13.5px; padding: var(--e8) 0; }

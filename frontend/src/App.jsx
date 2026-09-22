@@ -16,6 +16,10 @@ import UnidadDetalle from './pages/UnidadDetalle';
 import MisUnidades from './pages/MisUnidades';
 import Historicos from './pages/Historicos';
 import Empresas from './pages/Empresas';
+import RegistroProveedor from './pages/RegistroProveedor';
+import FacturasProveedor from './pages/FacturasProveedor';
+import ResumenFacturas from './pages/ResumenFacturas';
+import MisFacturas from './pages/MisFacturas';
 import SinAcceso from './pages/SinAcceso';
 
 /** Cada rol aterriza en lo primero que necesita ver al abrir el sistema. */
@@ -38,6 +42,8 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          {/* Pública: alta de proveedor por link de invitación (spec 001 HU-1). */}
+          <Route path="/registro/:token" element={<RegistroProveedor />} />
 
           {/* ── Administrador ── */}
           <Route path="/admin" element={soloAdmin(<Dashboard />)} />
@@ -49,6 +55,8 @@ export default function App() {
           <Route path="/admin/empresas" element={soloAdmin(<Empresas />)} />
           <Route path="/admin/proveedores" element={soloAdmin(<AdminProveedores />)} />
           <Route path="/admin/proveedores/:id" element={soloAdmin(<ProveedorDetalle />)} />
+          <Route path="/admin/proveedores/:id/facturas" element={soloAdmin(<FacturasProveedor />)} />
+          <Route path="/admin/resumen-facturas" element={soloAdmin(<ResumenFacturas />)} />
           <Route path="/admin/unidades" element={soloAdmin(<AdminUnidades />)} />
           <Route path="/admin/unidades/:id" element={soloAdmin(<UnidadDetalle />)} />
           <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
@@ -66,10 +74,14 @@ export default function App() {
 
           {/* ── Proveedor ── */}
           <Route
+            path="/proveedor/facturas"
+            element={<Protegida roles={['proveedor']}><MisFacturas /></Protegida>}
+          />
+          <Route
             path="/proveedor/documentos"
             element={<Protegida roles={['proveedor']}><MisDocumentos /></Protegida>}
           />
-          <Route path="/proveedor/*" element={<Navigate to="/proveedor/documentos" replace />} />
+          <Route path="/proveedor/*" element={<Navigate to="/proveedor/facturas" replace />} />
 
           <Route path="/sin-acceso" element={<SinAcceso />} />
           <Route path="/" element={<RedirigirSegunRol />} />

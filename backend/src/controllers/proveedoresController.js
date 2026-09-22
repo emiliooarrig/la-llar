@@ -217,6 +217,12 @@ async function crear(req, res) {
     });
     res.status(201).json(proveedor);
   } catch (e) {
+    // El RFC es único desde el alta por link (spec 001): dos proveedores con
+    // el mismo RFC repartirían las facturas de una sola empresa entre dos
+    // expedientes.
+    if (e.code === 'P2002') {
+      return res.status(409).json({ error: 'Ya existe un proveedor con ese RFC' });
+    }
     console.error('Error al crear proveedor:', e);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
@@ -239,6 +245,7 @@ async function actualizar(req, res) {
     res.json(proveedor);
   } catch (e) {
     if (e.code === 'P2025') return res.status(404).json({ error: 'Proveedor no encontrado' });
+    if (e.code === 'P2002') return res.status(409).json({ error: 'Ya existe un proveedor con ese RFC' });
     console.error('Error al actualizar proveedor:', e);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
@@ -266,7 +273,80 @@ async function toggleActivo(req, res) {
   }
 }
 
+
+/* ── PATCH /api/proveedores/:id/credito (administrador) ───────────────
+ * Días de crédito: los días naturales entre que se aprueba una factura y la
+ * fecha estimada de pago (spec 001 HU-10). Son fijos por proveedor, no por
+ * empresa: el mismo proveedor cobra al mismo plazo facture a quien facture
+ * (respuesta a la pregunta abierta §7).
+ *
+ * 0 es un valor legítimo —de contado—, no "sin configurar". */
+async function actualizarCredito(req, res) {
+  const id = parseInt(req.params.id);
+  if (Number.isNaN(id)) return res.status(400).json({ error: 'Identificador inválido' });
+
+  const dias = req.body?.dias_credito;
+  // Se exige entero: "30.5 días de crédito" no significa nada y un decimal
+  // que llegue por descuido desplazaría todas las fechas de pago.
+  if (!Number.isInteger(dias) || dias < 0 || dias > 365) {
+    return res.status(400).json({ error: 'Los días de crédito deben ser un número entero entre 0 y 365' });
+  }
+
+  try {
+    const proveedor = await prisma.proveedores.update({
+      where: { id },
+      data: { dias_credito: dias },
+      include: INCLUDE_RESUMEN,
+    });
+    res.json(proveedor);
+  } catch (e) {
+    if (e.code === 'P2025') return res.status(404).json({ error: 'Proveedor no encontrado' });
+    console.error('Error al actualizar días de crédito:', e);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+}
+
+/* ── PATCH /api/proveedores/:id/bloqueo (administrador) ───────────────
+ * Freno puntual a la facturación de un proveedor (spec 001 HU-8).
+ *
+ * Es distinto de desactivarlo: un proveedor bloqueado sigue entrando al
+ * portal y viendo su historial; lo único que no puede es subir facturas
+ * nuevas. El motivo es obligatorio porque el proveedor lo lee: un 403 sin
+ * explicación acaba en una llamada telefónica al administrador. */
+async function actualizarBloqueo(req, res) {
+  const id = parseInt(req.params.id);
+  if (Number.isNaN(id)) return res.status(400).json({ error: 'Identificador inválido' });
+
+  const bloqueado = Boolean(req.body?.bloqueado);
+  const motivo = typeof req.body?.motivo === 'string' ? req.body.motivo.trim() : '';
+
+  if (bloqueado && !motivo) {
+    return res.status(400).json({ error: 'Para bloquear la facturación hay que escribir el motivo.' });
+  }
+  if (motivo.length > 300) {
+    return res.status(400).json({ error: 'El motivo no puede exceder 300 caracteres' });
+  }
+
+  try {
+    const proveedor = await prisma.proveedores.update({
+      where: { id },
+      data: {
+        bloqueado_facturar: bloqueado,
+        // Al desbloquear se borra el motivo: dejarlo puesto haría que la
+        // próxima pantalla mostrara un bloqueo que ya no existe.
+        motivo_bloqueo: bloqueado ? motivo : null,
+      },
+      include: INCLUDE_RESUMEN,
+    });
+    res.json(proveedor);
+  } catch (e) {
+    if (e.code === 'P2025') return res.status(404).json({ error: 'Proveedor no encontrado' });
+    console.error('Error al actualizar bloqueo del proveedor:', e);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+}
+
 module.exports = {
   listar, obtener, subirDocumento, descargar, actualizarEstado, eliminarDocumento,
-  crear, actualizar, toggleActivo,
+  crear, actualizar, toggleActivo, actualizarCredito, actualizarBloqueo,
 };

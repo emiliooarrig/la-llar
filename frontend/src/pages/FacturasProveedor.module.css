@@ -1,0 +1,14 @@
+/* Panel del administrador sobre la facturación de un proveedor. */
+
+.cabecera {
+  display: flex; flex-wrap: wrap; gap: var(--e4); align-items: center;
+  justify-content: space-between; margin-bottom: var(--e5);
+  padding: var(--e4); border: 1px solid var(--color-borde);
+  border-radius: var(--radio); background: #fff;
+}
+.ajustes { display: flex; flex-wrap: wrap; gap: var(--e5); align-items: center; }
+.ajuste { display: flex; flex-direction: column; gap: 3px; }
+.ajusteEtiqueta { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--texto-muted); font-weight: 600; }
+.ajusteValor { font-size: 14px; color: var(--color-texto); font-weight: 600; display: flex; align-items: center; gap: var(--e2); }
+.sinConfigurar { color: var(--texto-muted); font-weight: 400; font-style: italic; }
+.acciones { display: flex; gap: var(--e2); flex-wrap: wrap; }

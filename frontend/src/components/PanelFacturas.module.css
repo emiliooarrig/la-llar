@@ -1,0 +1,32 @@
+/* Tabla de facturas: la misma para el proveedor y para el administrador.
+   Lo único que cambia entre los dos son las acciones de cada fila. */
+
+.archivo { display: inline-flex; align-items: center; gap: var(--e2); min-width: 0; }
+.folio { font-family: var(--fuente-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 12px; color: var(--color-texto-suave); }
+.serie { font-weight: 600; color: var(--color-texto); }
+.importe { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+.proveedor { display: flex; flex-direction: column; line-height: 1.4; min-width: 0; }
+.proveedorSec { font-size: 11.5px; color: var(--texto-muted); }
+
+/* Un estado de la factura puede llevar marcas encima: pagada, complemento
+   pendiente… Se apilan en vertical para que la columna no se ensanche. */
+.marcas { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+
+/* Observaciones dentro del modal de detalle: hilo cronológico, la última
+   arriba. Cada una lleva quién y cuándo, que es lo que la hace auditable. */
+.hilo { display: flex; flex-direction: column; gap: var(--e3); max-height: 320px; overflow-y: auto; }
+.nota { border-left: 2px solid var(--color-borde); padding: 2px 0 2px var(--e3); }
+.notaTexto { font-size: 13px; color: var(--color-texto); line-height: 1.5; white-space: pre-wrap; }
+.notaPie { font-size: 11.5px; color: var(--texto-muted); margin-top: 3px; }
+.hiloVacio { font-size: 13px; color: var(--texto-muted); }
+
+/* Bloque de datos del comprobante en el detalle. */
+.datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--e3) var(--e4); }
+.dato { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.datoEtiqueta { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--texto-muted); font-weight: 600; }
+.datoValor { font-size: 13px; color: var(--color-texto); word-break: break-word; }
+.datoMono { font-family: var(--fuente-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 11.5px; }
+
+.bloque { display: flex; flex-direction: column; gap: var(--e3); }
+.bloqueTitulo { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--color-texto-suave); }
+.separador { height: 1px; background: var(--color-borde); margin: var(--e2) 0; }

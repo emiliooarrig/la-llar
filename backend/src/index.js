@@ -17,6 +17,10 @@ const ventanasRoutes = require('./routes/ventanas');
 const webhookRoutes = require('./routes/webhook');
 const historicosRoutes = require('./routes/historicos');
 const empresasRoutes = require('./routes/empresas');
+const registroRoutes = require('./routes/registro');
+const facturasRoutes = require('./routes/facturas');
+const configRoutes = require('./routes/config');
+const alertasRoutes = require('./routes/alertas');
 
 const app = express();
 const PORT = process.env.PORT;
@@ -51,6 +55,11 @@ app.use('/api/ventanas', ventanasRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/historicos', historicosRoutes);
 app.use('/api/empresas', empresasRoutes);
+app.use('/api/facturas', facturasRoutes);
+app.use('/api/config', configRoutes);
+app.use('/api/alertas', alertasRoutes);
+// Público (sin verificarToken): alta de proveedor por link de invitación.
+app.use('/api/registro', registroRoutes);
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 

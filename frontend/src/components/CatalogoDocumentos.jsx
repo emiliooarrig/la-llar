@@ -155,9 +155,14 @@ export default function CatalogoDocumentos({ recurso, formulario }) {
             <span className={styles.conteoMuted}> · {items.length - activos} sin actividad</span>
           )}
         </p>
-        <button type="button" className="btn btn--primario" onClick={abrirCrear}>
-          <IconoMas /> {recurso.textoNuevo}
-        </button>
+        <span className={styles.barraAcciones}>
+          {/* Acciones propias del catálogo: proveedores añade aquí la
+              invitación por link, que unidades no tiene. */}
+          {recurso.accionesExtra?.()}
+          <button type="button" className="btn btn--primario" onClick={abrirCrear}>
+            <IconoMas /> {recurso.textoNuevo}
+          </button>
+        </span>
       </div>
 
       <BarraFiltros

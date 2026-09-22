@@ -104,3 +104,6 @@
   .fichaEnlace { flex-wrap: wrap; padding: var(--e3); }
   .fichaDocs { align-items: flex-start; flex-basis: 100%; flex-direction: row; gap: var(--e2); }
 }
+
+/* Acciones de la barra: el botón de alta y lo que cada catálogo añada. */
+.barraAcciones { display: flex; gap: var(--e2); align-items: center; flex-wrap: wrap; }

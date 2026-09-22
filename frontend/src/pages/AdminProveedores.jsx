@@ -1,4 +1,6 @@
 import CatalogoDocumentos from '../components/CatalogoDocumentos';
+import InvitarProveedor from '../components/InvitarProveedor';
+import EjemploFactura from '../components/EjemploFactura';
 import Campo from '../components/Campo';
 
 const RECURSO = {
@@ -18,6 +20,9 @@ const RECURSO = {
   quien: 'Los proveedores',
   rutaDetalle: id => `/admin/proveedores/${id}`,
   metaFicha: p => (p.rfc ? `RFC ${p.rfc}` : 'Sin RFC registrado'),
+  /* Alta por link (spec 001 HU-1): el proveedor se registra solo, en vez
+     de que el administrador teclee su RFC y le invente una contraseña. */
+  accionesExtra: () => <><EjemploFactura /><InvitarProveedor /></>,
 };
 
 /* El RFC mexicano son 12 caracteres (persona moral) o 13 (persona física). */

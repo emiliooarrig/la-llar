@@ -24,7 +24,8 @@ model empresas {
   activo Boolean @default(true)
 
   sucursales sucursales[]
-  // Las relaciones inversas de facturas y vales llegan con las specs 001/002.
+  facturas   facturas[]
+  // La relación inversa de vales llega con la spec 002.
 }
 
 model usuarios {
@@ -58,7 +59,7 @@ model sucursales {
   // existen: el backfill la puebla (scripts/backfill_empresas_sucursales.js).
   empresa_id Int?
 
-  empresa           empresas?   @relation(fields: [empresa_id], references: [id])
+  empresa           empresas?           @relation(fields: [empresa_id], references: [id])
   usuarios          usuarios[]
   empleados         empleados[]
   asistencias       asistencias[]
@@ -140,13 +141,41 @@ model correcciones_asistencia {
 
 model proveedores {
   id        Int      @id @default(autoincrement())
-  nombre    String   @db.VarChar(150)
-  rfc       String?  @db.VarChar(20)
+  nombre String  @db.VarChar(150)
+  // Único: el RFC identifica fiscalmente al proveedor, y con el alta por link
+  // (spec 001 HU-1) el catálogo ya no lo llena solo el administrador. Sin esta
+  // restricción, dos registros simultáneos con el mismo RFC crearían dos
+  // proveedores gemelos y las facturas se repartirían entre ambos.
+  // Sigue admitiendo NULL —y MySQL permite varios— para los proveedores que
+  // el administrador da de alta sin RFC a mano.
+  rfc       String?  @unique @db.VarChar(20)
   activo    Boolean  @default(true)
   creado_en DateTime @default(now())
 
+  // Días naturales entre la aprobación de una factura y su fecha de pago
+  // estimada. Son fijos por proveedor, no por empresa (spec 001 §7): el
+  // mismo proveedor cobra al mismo plazo facture a La Llar o a Confia.
+  //
+  // NULL y 0 no son lo mismo, y por eso la columna admite nulos: 0 es "paga
+  // de contado", una condición comercial que alguien decidió; NULL es "nadie
+  // lo ha configurado todavía". El resumen semanal calcula igual con los dos
+  // (HU-10: sin configurar se asume 0), pero solo marca los NULL como
+  // pendientes de configurar. Con un `@default(0)` no nulo, cada proveedor
+  // de contado saldría marcado como "sin configurar" todas las semanas.
+  dias_credito Int?
+
+  // Bloqueo puntual: freno manual del administrador para un proveedor
+  // problemático (spec 001 HU-8). Es distinto de `activo`: un proveedor
+  // bloqueado sigue existiendo, entrando al sistema y viendo su historial;
+  // lo único que no puede es subir facturas nuevas. El motivo es obligatorio
+  // al bloquear porque el proveedor lo ve: un 403 sin explicación acaba en
+  // una llamada telefónica.
+  bloqueado_facturar Boolean @default(false)
+  motivo_bloqueo     String? @db.VarChar(300)
+
   usuarios             usuarios[]
   documentos_proveedor documentos_proveedor[]
+  facturas             facturas[]
 }
 
 model documentos_proveedor {
@@ -196,6 +225,141 @@ model documentos_historicos {
 
   @@index([origen])
   @@index([nombre_original])
+}
+
+// Factura CFDI de un proveedor. Convive con `documentos_proveedor`, que
+// sigue siendo el cajón de documentación genérica (constancias, contratos):
+// una factura tiene folio fiscal, importe y un ciclo de vida propio que un
+// documento suelto no tiene, y mezclarlas obligaría a llenar de columnas
+// nulas la tabla genérica.
+//
+// El par XML + PDF es obligatorio: el XML es el comprobante fiscal de verdad
+// (de él se extrae todo lo demás) y el PDF es la representación impresa que
+// revisa una persona. Guardar solo uno de los dos deja el expediente cojo.
+model facturas {
+  id           Int    @id @default(autoincrement())
+  proveedor_id Int
+  empresa_id   Int
+
+  // Folio fiscal del timbre (TimbreFiscalDigital/@UUID). Es la clave natural
+  // de deduplicación del sistema entero: el SAT garantiza que no se repite,
+  // así que dos filas con el mismo UUID son la misma factura subida dos veces.
+  uuid_fiscal String @unique @db.VarChar(36)
+
+  rfc_emisor   String? @db.VarChar(13)
+  rfc_receptor String? @db.VarChar(13)
+
+  // Decimal, nunca Float: en dinero, 0.1 + 0.2 no puede dar 0.30000000000000004.
+  total       Decimal   @db.Decimal(12, 2)
+  fecha_cfdi  DateTime?
+  serie_folio String?   @db.VarChar(60)
+  moneda      String?   @db.VarChar(3)
+
+  estado EstadoDocumento @default(pendiente)
+
+  ruta_xml String @db.VarChar(500)
+  ruta_pdf String @db.VarChar(500)
+
+  // Nombres originales con los que el proveedor subió cada archivo. En disco
+  // todo se guarda como UUID + extensión canónica (nunca el nombre del
+  // cliente), pero al descargar hay que devolverle su nombre.
+  nombre_xml String @db.VarChar(255)
+  nombre_pdf String @db.VarChar(255)
+
+  subido_por       Int
+  aprobado_por     Int?
+  // Arranca el conteo de días de crédito: fecha de pago = esta + dias_credito.
+  fecha_aprobacion DateTime?
+
+  // Ciclo del complemento de pago (HU-4): el admin marca que ya pagó y eso
+  // obliga al proveedor a subir el complemento antes de facturar de nuevo.
+  pago_realizado     Boolean   @default(false)
+  fecha_pago_marcado DateTime?
+
+  creado_en DateTime @default(now())
+
+  proveedor     proveedores               @relation(fields: [proveedor_id], references: [id])
+  empresa       empresas                  @relation(fields: [empresa_id], references: [id])
+  observaciones observaciones_documento[]
+  complemento   complementos_pago?
+
+  @@index([proveedor_id, estado])
+  @@index([empresa_id, fecha_aprobacion])
+  // El bloqueo secuencial pregunta justo por esto: facturas pagadas de un
+  // proveedor que todavía no tienen complemento.
+  @@index([proveedor_id, pago_realizado])
+}
+
+// Complemento de pago de una factura ya pagada. Uno por factura (@unique en
+// factura_id): el complemento cierra el ciclo fiscal de ESA factura.
+//
+// El UUID es opcional a diferencia del de la factura: un complemento de pago
+// es un CFDI timbrado y debería traerlo, pero si el XML llega sin timbre
+// preferimos guardar el documento y que el administrador lo rechace a mano
+// antes que perderlo. Cuando viene, también es único.
+model complementos_pago {
+  id          Int     @id @default(autoincrement())
+  factura_id  Int     @unique
+  uuid_fiscal String? @unique @db.VarChar(36)
+
+  ruta_xml   String @db.VarChar(500)
+  ruta_pdf   String @db.VarChar(500)
+  nombre_xml String @db.VarChar(255)
+  nombre_pdf String @db.VarChar(255)
+
+  estado     EstadoDocumento @default(pendiente)
+  subido_por Int
+  creado_en  DateTime        @default(now())
+
+  factura facturas @relation(fields: [factura_id], references: [id])
+}
+
+// Observaciones de una factura. Es una tabla y no una columna `observacion`
+// porque el rechazo puede repetirse: el proveedor corrige, vuelve a subir,
+// y el historial de por qué se le rechazó cada vez es justamente lo que hace
+// auditable la relación. Solo se añaden filas; nunca se editan ni se borran.
+model observaciones_documento {
+  id         Int      @id @default(autoincrement())
+  factura_id Int
+  texto      String   @db.VarChar(500)
+  autor_id   Int
+  creado_en  DateTime @default(now())
+
+  factura facturas @relation(fields: [factura_id], references: [id])
+
+  @@index([factura_id])
+}
+
+// Invitación de un solo uso para que un proveedor se dé de alta solo.
+//
+// Se guarda el HASH del token, no el token: la tabla es tan legible para
+// quien tenga acceso a la base como para un respaldo extraviado, y un token
+// en claro ahí dentro es una cuenta de proveedor regalada. El token viaja
+// una única vez, en la URL que el administrador copia.
+model invitaciones_proveedor {
+  id         Int       @id @default(autoincrement())
+  token_hash String    @unique @db.VarChar(64)
+  email      String?   @db.VarChar(200)
+  creada_por Int
+  expira_en  DateTime
+  usado_en   DateTime?
+  creado_en  DateTime  @default(now())
+
+  @@index([expira_en])
+}
+
+// Ajustes sueltos del sistema que no justifican una tabla propia: hoy solo
+// el "ejemplo de factura" que el administrador publica para los proveedores
+// (spec 001 HU-7), un PDF que se reemplaza de vez en cuando.
+//
+// Clave/valor con el valor en JSON, a propósito: la alternativa era una
+// tabla `ejemplos_factura` de una sola fila, o guardar la metadata en un
+// archivo suelto junto al PDF, que es justo lo que se desincroniza.
+model configuracion {
+  clave         String   @id @db.VarChar(60)
+  valor         Json
+  actualizado_por Int?
+  actualizado_en  DateTime @updatedAt
 }
 
 model ventanas_carga {

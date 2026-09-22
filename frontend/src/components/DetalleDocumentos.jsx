@@ -274,6 +274,9 @@ export default function DetalleDocumentos({ recurso }) {
       ]}
       acciones={
         <>
+          {/* Acciones propias del recurso: proveedores añade aquí el acceso
+              a su facturación, que unidades no tiene. */}
+          {recurso.accionesExtra?.(entidad)}
           <input
             ref={inputRef} type="file" accept=".pdf,.xlsx,.docx"
             style={{ display: 'none' }} onChange={subir}

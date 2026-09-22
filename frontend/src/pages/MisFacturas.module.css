@@ -1,0 +1,35 @@
+/* Portal de facturación del proveedor. */
+
+.avisos { display: flex; flex-direction: column; gap: var(--e3); margin-bottom: var(--e5); }
+
+/* Bloque del ejemplo de factura (HU-7): guía, no documento del proveedor.
+   Va con el borde punteado para que se lea como material de apoyo y no
+   como una fila más de su expediente. */
+.ejemplo {
+  display: flex; align-items: center; gap: var(--e3);
+  border: 1px dashed var(--color-borde-fuerte, var(--color-borde));
+  border-radius: var(--radio); padding: var(--e3) var(--e4);
+  background: var(--color-blanco-hueso); margin-bottom: var(--e5);
+}
+.ejemploIcono { color: var(--color-naranja); display: grid; place-items: center; flex-shrink: 0; }
+.ejemploTexto { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.ejemploTitulo { font-size: 13.5px; font-weight: 600; color: var(--color-texto); }
+.ejemploPista { font-size: 12.5px; color: var(--color-texto-suave); }
+
+/* Formulario de subida: dos archivos y la empresa a la que se factura. */
+.campos { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e4); }
+@media (max-width: 620px) { .campos { grid-template-columns: 1fr; } }
+
+.archivo {
+  display: flex; align-items: center; gap: var(--e3);
+  border: 1px dashed var(--color-borde); border-radius: var(--radio);
+  padding: var(--e3); background: var(--color-blanco-hueso);
+  cursor: pointer; transition: border-color .15s, background-color .15s;
+}
+.archivo:hover { border-color: var(--color-naranja); background: var(--tinte-naranja); }
+.archivoElegido { border-style: solid; border-color: var(--color-exito); background: var(--tinte-exito); }
+.archivoIcono { color: var(--color-texto-suave); flex-shrink: 0; }
+.archivoElegido .archivoIcono { color: var(--color-exito); }
+.archivoTexto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.archivoNombre { font-size: 12.5px; color: var(--color-texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.archivoPista { font-size: 11.5px; color: var(--texto-muted); }

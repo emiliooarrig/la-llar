@@ -1,0 +1,25 @@
+/* Resumen semanal de facturas aprobadas. */
+
+.controles {
+  display: flex; flex-wrap: wrap; gap: var(--e4); align-items: flex-end;
+  padding: var(--e4); margin-bottom: var(--e5);
+  border: 1px solid var(--color-borde); border-radius: var(--radio); background: #fff;
+}
+.control { display: flex; flex-direction: column; gap: 4px; }
+.controlEtiqueta { font-size: 11px; font-weight: 600; color: var(--color-texto-suave); text-transform: uppercase; letter-spacing: .04em; }
+.semana { display: flex; align-items: center; gap: var(--e2); }
+.cola { margin-left: auto; display: flex; gap: var(--e2); align-items: flex-end; }
+
+/* Cifras de cabecera: cuántas facturas, cuánto dinero. Es lo que se mira
+   antes que la tabla. */
+.cifras { display: flex; flex-wrap: wrap; gap: var(--e6); margin-bottom: var(--e5); }
+.cifra { display: flex; flex-direction: column; gap: 2px; }
+.cifraNumero { font-size: 24px; font-weight: 600; color: var(--color-texto); font-variant-numeric: tabular-nums; line-height: 1.15; }
+.cifraImporte { color: var(--color-naranja-oscuro); }
+.cifraEtiqueta { font-size: 12px; color: var(--color-texto-suave); }
+
+.importe { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+.folio { font-family: var(--fuente-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 11.5px; color: var(--color-texto-suave); }
+.sinConfigurar { color: var(--color-ambar-texto, #8A6D3B); font-size: 11.5px; }
+.apilado { display: flex; flex-direction: column; line-height: 1.4; min-width: 0; }
+.apiladoSec { font-size: 11.5px; color: var(--texto-muted); }
