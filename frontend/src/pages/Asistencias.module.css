@@ -254,3 +254,83 @@
   .barraMes { gap: var(--e3); }
   .filaDoble { grid-template-columns: 1fr; }
 }
+
+/* ── Evaluación contra horario (spec 004) ───────────────────
+   El canto izquierdo ya dice si el día está completo; el retardo se
+   dice en el canto de arriba para no competir con él. */
+.celdaRetardo { border-top: 2px solid var(--color-ambar); }
+
+.evalCelda {
+  display: flex; flex-direction: column; gap: 1px; margin-top: 3px;
+  font-size: 10px; line-height: 1.25; font-variant-numeric: tabular-nums; max-width: 100%;
+}
+.turnoCelda { color: var(--texto-muted); white-space: nowrap; }
+.marcaRetardo { color: var(--color-ambar-texto); font-weight: 600; white-space: nowrap; }
+.marcaExtra { color: var(--color-acero); font-weight: 600; white-space: nowrap; }
+
+.puntualidad { margin-top: var(--e8); }
+
+.evalCifras {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--e3);
+  margin-bottom: var(--e4);
+}
+.evalCifra {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: var(--e3) var(--e4); border: var(--borde); border-left: 3px solid var(--color-gris-claro);
+  border-radius: var(--radio-sm); background: var(--color-blanco);
+}
+.evalNumero { font-size: 20px; font-weight: 600; color: var(--color-texto); font-variant-numeric: tabular-nums; line-height: 1.2; }
+.evalEtiqueta { font-size: 11.5px; color: var(--color-texto-suave); }
+.evalAtencion { border-left-color: var(--color-ambar); }
+.evalAtencion .evalNumero { color: var(--color-ambar-texto); }
+.evalError { border-left-color: var(--color-error); }
+.evalError .evalNumero { color: var(--color-error); }
+.evalExtra { border-left-color: var(--color-acero); }
+.evalExtra .evalNumero { color: var(--color-acero); }
+
+/* Contador hacia el acta: tres fichas que se llenan. Se lee de un
+   vistazo cuánto le falta a alguien, sin hacer cuentas. */
+.periodos { list-style: none; margin: 0 0 var(--e4); padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.periodo { display: flex; align-items: center; gap: var(--e3); font-size: 12.5px; color: var(--color-texto-suave); flex-wrap: wrap; }
+.periodoNombre { min-width: 170px; color: var(--color-texto); }
+.contador { display: inline-flex; gap: 4px; }
+.ficha { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid var(--color-ambar); background: transparent; }
+.fichaLlena { background: var(--color-ambar); }
+.periodoTexto strong { color: var(--color-error); }
+
+.actas { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--e3); margin-bottom: var(--e4); }
+.acta {
+  border: var(--borde); border-left: 3px solid var(--color-error); border-radius: var(--radio-sm);
+  background: var(--tinte-error); padding: var(--e3) var(--e4);
+  display: flex; flex-direction: column; gap: var(--e2);
+}
+.actaCabeza { display: flex; align-items: center; gap: var(--e3); }
+.actaCabeza > svg { color: var(--color-error); width: 18px; height: 18px; flex-shrink: 0; }
+.actaTexto { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; font-size: 12px; color: var(--color-texto-suave); }
+.actaTexto strong { font-size: 13.5px; color: var(--color-texto); }
+.actaRetardos { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; color: var(--color-texto); }
+.actaRetardos li { display: flex; gap: var(--e3); flex-wrap: wrap; }
+.actaFecha { min-width: 92px; text-transform: capitalize; font-weight: 500; }
+
+/* Bloque de horario y extra dentro del modal del día. */
+.evalDia { display: flex; flex-direction: column; gap: var(--e3); margin-top: var(--e4); }
+.evalDiaResumen { display: flex; align-items: center; gap: var(--e3); flex-wrap: wrap; }
+.evalDiaTexto { font-size: 13px; color: var(--color-texto-suave); }
+.estadoEval {
+  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: var(--radio-pildora);
+  background: var(--color-blanco-hueso); color: var(--color-texto-suave); border: var(--borde);
+}
+.estadoEval_puntual { background: var(--tinte-exito); color: var(--color-exito); border-color: transparent; }
+.estadoEval_retardo { background: var(--tinte-ambar); color: var(--color-ambar-texto); border-color: transparent; }
+.estadoEval_falta { background: var(--tinte-error); color: var(--color-error); border-color: transparent; }
+.estadoEval_justificado { background: var(--tinte-acero); color: var(--color-acero); border-color: transparent; }
+.evalDiaAcciones { display: flex; justify-content: flex-end; gap: var(--e2); flex-wrap: wrap; }
+
+@media (max-width: 900px) {
+  .evalCifras { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .evalCifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .turnoCelda { display: none; }
+  .periodoNombre { min-width: 0; }
+}

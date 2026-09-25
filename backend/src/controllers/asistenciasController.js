@@ -558,4 +558,15 @@ async function reporteUnidad(req, res) {
   }
 }
 
-module.exports = { mesEmpleado, guardarDia, reporteUnidad };
+module.exports = {
+  mesEmpleado,
+  guardarDia,
+  reporteUnidad,
+  // Compartidos con la evaluación de horarios (spec 004): la forma de leer
+  // un día —marcas crudas + corrección + justificación— tiene que ser UNA.
+  agruparDiasEmpleado,
+  diaEfectivo,
+  parseDiasLaborales,
+  combinar,
+  printerPDF,
+};

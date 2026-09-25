@@ -1,0 +1,57 @@
+/* Editor de horario (spec 004). Dos bloques apilados: el horario fijo
+   arriba —lo que casi siempre se toca— y los turnos por fecha debajo. */
+.editor { display: flex; flex-direction: column; gap: var(--e5); }
+.cargando { display: flex; align-items: center; gap: var(--e2); font-size: 13px; color: var(--texto-muted); padding: var(--e4) 0; }
+
+.bloque { display: flex; flex-direction: column; gap: var(--e3); }
+.bloque + .bloque { border-top: var(--borde); padding-top: var(--e5); }
+.bloqueCabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--e3); flex-wrap: wrap; }
+.bloqueTitulo { font-size: 14px; font-weight: 600; color: var(--color-texto); margin: 0; }
+.bloqueTexto { font-size: 12.5px; color: var(--color-texto-suave); margin: 2px 0 0; line-height: 1.45; max-width: 520px; }
+
+/* ── Semana ── */
+.semana { display: flex; flex-direction: column; border: var(--borde); border-radius: var(--radio-sm); overflow: hidden; }
+.dia {
+  display: grid; grid-template-columns: 170px 1fr; align-items: center; gap: var(--e2) var(--e3);
+  padding: 8px var(--e3); background: var(--color-blanco);
+}
+.dia + .dia { border-top: var(--borde); }
+.diaLibre { background: var(--color-blanco-hueso); }
+.diaNombre { display: flex; align-items: center; gap: var(--e2); font-size: 13px; font-weight: 500; color: var(--color-texto); cursor: pointer; }
+.diaNota { font-size: 10.5px; color: var(--texto-muted); font-weight: 400; }
+.diaHoras { display: flex; align-items: center; gap: var(--e2); }
+.diaHoras .control { width: 118px; font-variant-numeric: tabular-nums; }
+.guion { font-size: 12px; color: var(--texto-muted); }
+.diaSinTurno { font-size: 12.5px; color: var(--texto-muted); }
+.diaError { grid-column: 2; }
+
+.acciones { display: flex; align-items: center; justify-content: flex-end; gap: var(--e3); flex-wrap: wrap; }
+.acciones :global(.pista) { margin-right: auto; }
+
+/* ── Turnos por fecha ── */
+.nuevo {
+  display: flex; flex-direction: column; gap: var(--e3);
+  padding: var(--e4); border: var(--borde); border-radius: var(--radio-sm); background: var(--color-blanco-hueso);
+}
+.nuevoFila { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--e3); }
+.filtroDias { display: flex; flex-direction: column; gap: var(--e2); }
+.chipsDias { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.lista { display: flex; flex-direction: column; gap: var(--e2); }
+.listaTitulo { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--color-texto-suave); }
+.vacio { font-size: 13px; color: var(--texto-muted); margin: 0; }
+.turnos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; }
+.turno {
+  display: flex; align-items: center; gap: var(--e3);
+  padding: 6px 6px 6px var(--e3); border: var(--borde); border-radius: var(--radio-sm); background: var(--color-blanco);
+}
+.turnoFecha { font-size: 12.5px; color: var(--color-texto); text-transform: capitalize; min-width: 92px; }
+.turnoHoras { font-size: 12.5px; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--color-texto); flex: 1; }
+.turnoDescanso { font-size: 12.5px; color: var(--color-acero); font-weight: 600; flex: 1; }
+
+@media (max-width: 640px) {
+  .dia { grid-template-columns: 1fr; }
+  .diaError { grid-column: 1; }
+  .diaHoras .control { width: auto; flex: 1; }
+  .nuevoFila { grid-template-columns: 1fr 1fr; }
+}

@@ -43,6 +43,9 @@ async function main() {
   await prisma.ventanas_carga.upsert({ where: { modulo: 'proveedores' }, update: {}, create: { modulo: 'proveedores', abierta: false } });
   await prisma.ventanas_carga.upsert({ where: { modulo: 'unidades' },    update: {}, create: { modulo: 'unidades',    abierta: false } });
   await prisma.ventanas_carga.upsert({ where: { modulo: 'asistencias' }, update: {}, create: { modulo: 'asistencias', abierta: false } });
+  // Reglas de evaluación de asistencia (spec 004). La migración ya siembra la fila; esto
+  // la repone si alguien la borró. `update: {}` respeta lo que haya ajustado el admin.
+  await prisma.config_asistencia.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } });
   console.log('Ventanas de carga inicializadas (cerradas).');
 
   console.log('Seed de producción completado.');

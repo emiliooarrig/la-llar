@@ -14,4 +14,9 @@ router.get('/ejemplo-factura', soloRol('administrador', 'proveedor'), ctrl.desca
 // Solo PDF: el ejemplo se mira, no se rellena.
 router.put('/ejemplo-factura', soloRol('administrador'), subirArchivo('archivo', FORMATOS_PDF), ctrl.publicarEjemploFactura);
 
+// Reglas de evaluación de asistencia (spec 004): tolerancia, umbral de
+// horas extra y periodo de conteo de retardos.
+router.get('/asistencia', soloRol('administrador', 'gerente'), ctrl.leerAsistencia);
+router.put('/asistencia', soloRol('administrador'), ctrl.guardarAsistencia);
+
 module.exports = router;

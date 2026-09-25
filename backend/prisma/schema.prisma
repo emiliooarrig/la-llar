@@ -85,6 +85,9 @@ model empleados {
   asistencias     asistencias[]
   justificaciones justificaciones[]
   correcciones    correcciones_asistencia[]
+  horarios        horarios_empleado[]
+  turnos_fecha    turnos_fecha[]
+  horas_extra     horas_extra_manual[]
 
   // El lector_uid es único POR unidad, no globalmente: el checador de cada
   // cocina puede asignar el mismo número a empleados distintos. El webhook
@@ -138,6 +141,81 @@ model correcciones_asistencia {
   empleado empleados @relation(fields: [empleado_id], references: [id])
 
   @@unique([empleado_id, fecha])
+}
+
+// Horario FIJO por día de la semana (spec 004). Un turno por día: sin
+// horario partido, porque la comida no se descuenta (spec 004 §7). Que un
+// día no tenga fila significa que ese día el empleado no tiene turno fijo.
+//
+// Las horas son de pared, 'HH:MM', igual que las correcciones: la
+// evaluación las compara con las marcas del checador sin pasar por zonas
+// horarias. No se admiten turnos que crucen la medianoche.
+model horarios_empleado {
+  id          Int    @id @default(autoincrement())
+  empleado_id Int
+  dia_semana  Int // 1=Lunes … 7=Domingo (ISO, como sucursales.dias_laborales)
+  entrada     String @db.VarChar(5) // 'HH:MM'
+  salida      String @db.VarChar(5) // 'HH:MM'
+
+  empleado empleados @relation(fields: [empleado_id], references: [id])
+
+  @@unique([empleado_id, dia_semana])
+}
+
+// Turno de una FECHA concreta. Manda sobre el horario semanal.
+//
+// Cubre los dos casos que pidió el negocio (spec 004 §7): para quien tiene
+// horario fijo es una excepción puntual (hoy entra más tarde, hoy descansa);
+// para quien rota, es su calendario entero y no tiene horario semanal. Por
+// eso se llama así y no "excepciones": para el rotativo no son excepción.
+model turnos_fecha {
+  id           Int      @id @default(autoincrement())
+  empleado_id  Int
+  fecha        String   @db.VarChar(10) // 'YYYY-MM-DD'
+  entrada      String?  @db.VarChar(5)
+  salida       String?  @db.VarChar(5)
+  // true = ese día no trabaja, aunque su horario semanal diga lo contrario.
+  descanso     Boolean  @default(false)
+  asignado_por Int
+  creado_en    DateTime @default(now())
+
+  empleado empleados @relation(fields: [empleado_id], references: [id])
+
+  @@unique([empleado_id, fecha])
+}
+
+// Horas extra fijadas a mano para un día. Mandan sobre las que calcula el
+// checador (spec 004 §7: la extra es variable y no depende solo de las
+// marcas). `minutos = 0` es válido: anula una extra que el checador vería
+// pero que no se reconoce. Borrar la fila devuelve el día al cálculo.
+model horas_extra_manual {
+  id             Int      @id @default(autoincrement())
+  empleado_id    Int
+  fecha          String   @db.VarChar(10) // 'YYYY-MM-DD'
+  minutos        Int
+  nota           String?  @db.VarChar(300)
+  asignado_por   Int
+  actualizado_en DateTime @updatedAt
+
+  empleado empleados @relation(fields: [empleado_id], references: [id])
+
+  @@unique([empleado_id, fecha])
+}
+
+// Reglas de evaluación de asistencia. Una sola fila (id = 1): son reglas
+// del negocio entero, no de cada cocina. La migración la siembra con los
+// valores de la spec; el administrador los ajusta desde Asistencias.
+model config_asistencia {
+  id               Int             @id @default(1)
+  // Minutos de gracia sobre la entrada del turno. 10 exactos = puntual.
+  tolerancia_min   Int             @default(10)
+  // Excedente mínimo sobre la salida para que el checador sugiera extra.
+  umbral_extra_min Int             @default(15)
+  // Ventana en la que se juntan los 3 retardos de un acta. El negocio la
+  // fijó por mes.
+  periodo_retardos PeriodoRetardos @default(mes)
+  actualizado_por  Int?
+  actualizado_en   DateTime        @updatedAt
 }
 
 model proveedores {
@@ -542,6 +620,12 @@ enum OrigenAclaracion {
   factura
   complemento
   soporte
+}
+
+enum PeriodoRetardos {
+  semana
+  quincena
+  mes
 }
 
 enum EstadoDocumento {

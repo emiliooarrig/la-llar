@@ -6,8 +6,10 @@ import Modal from '../components/Modal';
 import Campo from '../components/Campo';
 import BarraFiltros from '../components/BarraFiltros';
 import EstadoDato from '../components/EstadoDato';
+import EditorHorario from '../components/EditorHorario';
+import ReglasAsistencia from '../components/ReglasAsistencia';
 import {
-  IconoChevron, IconoDescargar, IconoCandado, IconoCalendario, IconoAlerta, IconoInfo,
+  IconoChevron, IconoDescargar, IconoCandado, IconoCalendario, IconoAlerta, IconoInfo, IconoLapiz,
 } from '../components/Iconos';
 import { useFiltrosURL } from '../hooks/useFiltrosURL';
 import { confirmar, toast, avisoError } from '../lib/alertas';
@@ -109,6 +111,32 @@ function estadoPermiso(v) {
 
 const FORM_DIA = { entrada: '', salida: '', tipo: '', nota: '' };
 
+/* ── Evaluación contra horario (spec 004) ───────────────── */
+const ETIQUETA_EVAL = {
+  puntual: 'Puntual',
+  retardo: 'Retardo',
+  falta: 'Falta',
+  incompleto: 'Incompleto',
+  pendiente: 'Pendiente',
+  sin_horario: 'Sin horario',
+  descanso: 'Descanso',
+  justificado: 'Justificado',
+};
+const TEXTO_PERIODO = { semana: 'la semana', quincena: 'la quincena', mes: 'el mes' };
+
+/** Minutos → "1h 20m" / "45m". Para la extra, donde "0h" no dice nada. */
+function formatearMinutos(min) {
+  if (!min) return '0m';
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h === 0) return `${m}m`;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
+
+function fechaLegible(fecha) {
+  return new Date(`${fecha}T00:00:00`).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
 export default function Asistencias() {
   const { usuario } = useAuth();
   const esGerente = usuario?.rol === 'gerente';
@@ -137,6 +165,19 @@ export default function Asistencias() {
   const [formPermiso, setFormPermiso] = useState({ desde: '', hasta: '' });
   const [erroresPermiso, setErroresPermiso] = useState({});
   const [guardandoPermiso, setGuardandoPermiso] = useState(false);
+
+  // Evaluación contra horario (spec 004). Va aparte del mes: si falla, el
+  // calendario de marcas sigue funcionando.
+  const [evaluacion, setEvaluacion] = useState(null);
+  const [errorEval, setErrorEval] = useState(null);
+  const [versionEval, setVersionEval] = useState(0);
+  const [modalHorario, setModalHorario] = useState(false);
+  const [modalReglas, setModalReglas] = useState(false);
+  const [extra, setExtra] = useState({ minutos: '', nota: '' });
+  const [errorExtra, setErrorExtra] = useState(null);
+  const [guardandoExtra, setGuardandoExtra] = useState(false);
+  const [descargandoActa, setDescargandoActa] = useState(null);
+  const recargarEvaluacion = () => setVersionEval(v => v + 1);
 
   /* ── Carga base ─────────────────────────────────────────── */
   useEffect(() => {
@@ -191,6 +232,21 @@ export default function Asistencias() {
     })();
     return () => { cancelado = true; };
   }, [empleadoSel, mes]);
+
+  useEffect(() => {
+    if (!empleadoSel) { setEvaluacion(null); return undefined; }
+    let cancelado = false;
+    setErrorEval(null);
+    api.get('/asistencias/evaluacion', { params: { empleado_id: empleadoSel, mes } })
+      .then(({ data }) => { if (!cancelado) setEvaluacion(data); })
+      .catch(() => { if (!cancelado) { setEvaluacion(null); setErrorEval('No se pudo evaluar la puntualidad del mes.'); } });
+    return () => { cancelado = true; };
+  }, [empleadoSel, mes, versionEval]);
+
+  const evalPorFecha = useMemo(
+    () => Object.fromEntries((evaluacion?.dias ?? []).map(d => [d.fecha, d])),
+    [evaluacion],
+  );
 
   const semanas = useMemo(() => construirCalendario(mes), [mes]);
   const empleadoActual = empleadosUnidad.find(e => e.id === Number(empleadoSel));
@@ -269,6 +325,12 @@ export default function Asistencias() {
       tipo: dia?.justificacion?.tipo || '',
       nota: dia?.justificacion?.nota || '',
     });
+    const ev = evalPorFecha[celda.fecha];
+    setExtra({
+      minutos: ev?.extra_fuente === 'manual' ? String(ev.extra_min) : '',
+      nota: ev?.extra_nota || '',
+    });
+    setErrorExtra(null);
     setDiaModal(celda);
   }
 
@@ -290,6 +352,7 @@ export default function Asistencias() {
       });
       setDiasMes(prev => ({ ...prev, [diaModal.fecha]: { fecha: diaModal.fecha, ...data } }));
       setDiaModal(null);
+      recargarEvaluacion();
       toast('Día actualizado');
     } catch (err) {
       await avisoError(err.response?.data?.error || 'No se pudo guardar el día.');
@@ -317,11 +380,78 @@ export default function Asistencias() {
       });
       setDiasMes(prev => ({ ...prev, [diaModal.fecha]: { fecha: diaModal.fecha, ...data } }));
       setDiaModal(null);
+      recargarEvaluacion();
       toast('Corrección revertida');
     } catch (err) {
       await avisoError(err.response?.data?.error || 'No se pudo revertir la corrección.');
     } finally {
       setGuardando(false);
+    }
+  }
+
+  /* ── Horas extra a mano (spec 004) ──────────────────────────
+     No depende del permiso de edición de marcas: asignar la extra de un
+     día es parte de llevar la cocina y no toca lo que registró el checador. */
+  async function guardarExtra() {
+    const minutos = Number(extra.minutos);
+    if (extra.minutos === '' || !Number.isInteger(minutos) || minutos < 0 || minutos > 1440) {
+      setErrorExtra('Escribe los minutos como número entero (0 a 1440).');
+      return;
+    }
+    setGuardandoExtra(true);
+    try {
+      await api.put('/asistencias/horas-extra', {
+        empleado_id: Number(empleadoSel), fecha: diaModal.fecha, minutos, nota: extra.nota,
+      });
+      recargarEvaluacion();
+      toast('Horas extra asignadas');
+    } catch (err) {
+      await avisoError(err.response?.data?.error || 'No se pudieron guardar las horas extra.');
+    } finally {
+      setGuardandoExtra(false);
+    }
+  }
+
+  async function quitarExtra() {
+    setGuardandoExtra(true);
+    try {
+      await api.delete('/asistencias/horas-extra', { params: { empleado_id: empleadoSel, fecha: diaModal.fecha } });
+      setExtra({ minutos: '', nota: '' });
+      recargarEvaluacion();
+      toast('Extra devuelta al cálculo del checador');
+    } catch (err) {
+      await avisoError(err.response?.data?.error || 'No se pudo quitar la extra manual.');
+    } finally {
+      setGuardandoExtra(false);
+    }
+  }
+
+  /* ── Acta en PDF ────────────────────────────────────────── */
+  async function descargarActa(acta) {
+    const clave = `${acta.periodo.clave}-${acta.numero}`;
+    setDescargandoActa(clave);
+    try {
+      const res = await api.get('/asistencias/acta', {
+        params: { empleado_id: empleadoSel, fecha: acta.periodo.desde, numero: acta.numero },
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      const match = (res.headers['content-disposition'] || '').match(/filename="?([^"]+)"?/);
+      a.download = match ? match[1] : `acta_${clave}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      let mensaje = 'No se pudo generar el acta.';
+      if (err.response?.data instanceof Blob) {
+        try { mensaje = JSON.parse(await err.response.data.text()).error || mensaje; } catch { /* noop */ }
+      }
+      await avisoError(mensaje);
+    } finally {
+      setDescargandoActa(null);
     }
   }
 
@@ -416,6 +546,8 @@ export default function Asistencias() {
 
   const [anio, numMes] = mes.split('-').map(Number);
   const diaSeleccionado = diaModal ? diasMes[diaModal.fecha] : null;
+  const evalSeleccionado = diaModal ? evalPorFecha[diaModal.fecha] : null;
+  const reglas = evaluacion?.reglas;
 
   return (
     <Layout
@@ -428,6 +560,21 @@ export default function Asistencias() {
       migas={[{ etiqueta: 'Asistencias' }]}
       acciones={
         <>
+          {!esGerente && (
+            <button
+              type="button" className="btn btn--neutro" onClick={() => setModalReglas(true)}
+              title="Tolerancia, umbral de horas extra y periodo de retardos"
+            >
+              <IconoInfo /> Reglas
+            </button>
+          )}
+          <button
+            type="button" className="btn btn--neutro" onClick={() => setModalHorario(true)}
+            disabled={!empleadoActual}
+            title={empleadoActual ? `Horario de ${empleadoActual.nombre}` : 'Elige un empleado para ver o definir su horario'}
+          >
+            <IconoCalendario /> Horario
+          </button>
           {!esGerente && (
             <button
               type="button" className="btn btn--neutro" onClick={abrirPermiso}
@@ -538,6 +685,7 @@ export default function Asistencias() {
                   const esHoy = celda.fecha === HOY_STR;
                   const esFuturo = celda.fecha > HOY_STR;
                   const esLaboral = diasLaborales.has(isoDeFecha(celda.fecha));
+                  const ev = evalPorFecha[celda.fecha];
                   return (
                     <button
                       key={j}
@@ -548,6 +696,7 @@ export default function Asistencias() {
                         esHoy ? styles.celdaHoy : '',
                         esFuturo ? styles.celdaFuturo : '',
                         !esLaboral && !esFuturo ? styles.celdaNoLaboral : '',
+                        ev?.estado === 'retardo' ? styles.celdaRetardo : '',
                       ].filter(Boolean).join(' ')}
                       onClick={() => abrirDia(celda)}
                       aria-label={`${celda.dia} de ${NOMBRES_MES[numMes - 1]}`}
@@ -569,6 +718,19 @@ export default function Asistencias() {
                           {esFuturo ? '' : esLaboral ? 'Sin registro' : 'Descanso'}
                         </span>
                       )}
+
+                      {/* Evaluación contra horario (spec 004). */}
+                      {ev && (ev.turno || ev.estado === 'retardo' || ev.extra_min > 0) && (
+                        <span className={styles.evalCelda}>
+                          {ev.turno && <span className={styles.turnoCelda}>{ev.turno.entrada}–{ev.turno.salida}</span>}
+                          {ev.estado === 'retardo' && <span className={styles.marcaRetardo}>+{ev.retraso_min}m tarde</span>}
+                          {ev.extra_min > 0 && (
+                            <span className={styles.marcaExtra} title={ev.extra_fuente === 'manual' ? 'Asignada a mano' : 'Calculada por el checador'}>
+                              {formatearMinutos(ev.extra_min)} extra{ev.extra_fuente === 'manual' ? '*' : ''}
+                            </span>
+                          )}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -577,6 +739,123 @@ export default function Asistencias() {
           </div>
         )}
       </section>
+
+      {empleadoSel && errorEval && (
+        <div className="aviso aviso--error" role="alert"><IconoAlerta /><span>{errorEval}</span></div>
+      )}
+
+      {empleadoSel && evaluacion && (
+        <section className={styles.puntualidad} aria-labelledby="titulo-puntualidad">
+          <h2 className="seccion__titulo" id="titulo-puntualidad">Puntualidad y horas extra</h2>
+
+          {evaluacion.sin_horario_definido && (
+            <div className="aviso aviso--atencion">
+              <IconoInfo />
+              <span>
+                <strong>{empleadoActual?.nombre}</strong> no tiene horario definido: sin él no se puede juzgar su puntualidad.
+              </span>
+              <span className="aviso__cola">
+                <button type="button" className="btn btn--neutro btn--sm" onClick={() => setModalHorario(true)}>
+                  <IconoCalendario tamano={15} /> Definir horario
+                </button>
+              </span>
+            </div>
+          )}
+
+          <div className={styles.evalCifras}>
+            <div className={styles.evalCifra}>
+              <span className={styles.evalNumero}>{evaluacion.totales.puntual}</span>
+              <span className={styles.evalEtiqueta}>Puntuales</span>
+            </div>
+            <div className={`${styles.evalCifra} ${evaluacion.totales.retardo ? styles.evalAtencion : ''}`}>
+              <span className={styles.evalNumero}>{evaluacion.totales.retardo}</span>
+              <span className={styles.evalEtiqueta}>Retardos</span>
+            </div>
+            <div className={`${styles.evalCifra} ${evaluacion.totales.falta ? styles.evalError : ''}`}>
+              <span className={styles.evalNumero}>{evaluacion.totales.falta}</span>
+              <span className={styles.evalEtiqueta}>Faltas a su turno</span>
+            </div>
+            <div className={styles.evalCifra}>
+              <span className={styles.evalNumero}>{evaluacion.totales.sin_horario}</span>
+              <span className={styles.evalEtiqueta}>Días sin horario</span>
+            </div>
+            <div className={`${styles.evalCifra} ${styles.evalExtra}`}>
+              <span className={styles.evalNumero}>{formatearMinutos(evaluacion.totales.extra_min)}</span>
+              <span className={styles.evalEtiqueta}>Horas extra</span>
+            </div>
+          </div>
+
+          {/* Retardos por periodo: cuánto falta para el acta. */}
+          {evaluacion.periodos.length > 0 && (
+            <ul className={styles.periodos}>
+              {evaluacion.periodos.map(p => (
+                <li key={p.clave} className={styles.periodo}>
+                  <span className={styles.periodoNombre}>
+                    {reglas?.periodo_retardos === 'mes' ? 'En el mes' : `Del ${fechaLegible(p.desde)} al ${fechaLegible(p.hasta)}`}
+                  </span>
+                  <span className={styles.contador} aria-label={`${p.acumulados} de ${reglas?.retardos_por_acta ?? 3} retardos hacia la siguiente acta`}>
+                    {Array.from({ length: reglas?.retardos_por_acta ?? 3 }).map((_, i) => (
+                      <i key={i} className={`${styles.ficha}${i < p.acumulados ? ` ${styles.fichaLlena}` : ''}`} />
+                    ))}
+                  </span>
+                  <span className={styles.periodoTexto}>
+                    {p.retardos} {p.retardos === 1 ? 'retardo' : 'retardos'}
+                    {p.actas > 0 && <> · <strong>{p.actas} {p.actas === 1 ? 'acta' : 'actas'}</strong></>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {evaluacion.actas.length > 0 && (
+            <div className={styles.actas}>
+              {evaluacion.actas.map(acta => {
+                const clave = `${acta.periodo.clave}-${acta.numero}`;
+                return (
+                  <article key={clave} className={styles.acta}>
+                    <div className={styles.actaCabeza}>
+                      <IconoAlerta />
+                      <div className={styles.actaTexto}>
+                        <strong>Acta por {reglas?.retardos_por_acta ?? 3} retardos</strong>
+                        <span>
+                          {reglas?.periodo_retardos === 'mes' ? 'Periodo: el mes' : `Del ${fechaLegible(acta.periodo.desde)} al ${fechaLegible(acta.periodo.hasta)}`}
+                          {acta.numero > 1 ? ` · acta ${acta.numero}` : ''}
+                        </span>
+                      </div>
+                      <button
+                        type="button" className="btn btn--neutro btn--sm"
+                        onClick={() => descargarActa(acta)} disabled={descargandoActa === clave}
+                        title="PDF para firmar por el empleado y el personal administrativo"
+                      >
+                        {descargandoActa === clave ? <span className="spinner" /> : <IconoDescargar tamano={15} />}
+                        Acta PDF
+                      </button>
+                    </div>
+                    <ol className={styles.actaRetardos}>
+                      {acta.retardos.map(r => (
+                        <li key={r.fecha}>
+                          <span className={styles.actaFecha}>{fechaLegible(r.fecha)}</span>
+                          <span>Turno {r.turno_entrada} · llegó {r.entrada}</span>
+                          <span className={styles.marcaRetardo}>+{r.retraso_min} min</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+
+          {reglas && (
+            <p className={styles.nota}>
+              Tolerancia de <strong>{reglas.tolerancia_min} min</strong> sobre la entrada del turno.
+              Cada <strong>{reglas.retardos_por_acta} retardos</strong> en {TEXTO_PERIODO[reglas.periodo_retardos]} generan un acta.
+              La extra la sugiere el checador a partir de <strong>{reglas.umbral_extra_min} min</strong> después de la salida;
+              las marcadas con * se asignaron a mano.
+            </p>
+          )}
+        </section>
+      )}
 
       {empleadoSel && resumen && (
         <section className={styles.resumen}>
@@ -743,7 +1022,79 @@ export default function Asistencias() {
               </Campo>
             )}
           </form>
+
+          {/* Horario y horas extra del día (spec 004). Va fuera del formulario
+              de marcas: se guarda aparte y no requiere el permiso de edición. */}
+          {evalSeleccionado && (
+            <div className={styles.evalDia}>
+              <p className={styles.divisor}>Horario y horas extra</p>
+
+              <div className={styles.evalDiaResumen}>
+                <span className={`${styles.estadoEval} ${styles[`estadoEval_${evalSeleccionado.estado}`] ?? ''}`}>
+                  {ETIQUETA_EVAL[evalSeleccionado.estado]}
+                </span>
+                <span className={styles.evalDiaTexto}>
+                  {evalSeleccionado.turno
+                    ? <>Turno {evalSeleccionado.turno.entrada}–{evalSeleccionado.turno.salida}
+                        {evalSeleccionado.turno.origen === 'fecha' ? ' (asignado para esta fecha)' : ''}</>
+                    : evalSeleccionado.turno_descanso ? 'Día de descanso asignado' : 'Sin turno este día'}
+                  {evalSeleccionado.estado === 'retardo' && <> · llegó {evalSeleccionado.retraso_min} min tarde</>}
+                </span>
+              </div>
+
+              <div className={styles.filaDoble}>
+                <Campo
+                  etiqueta="Horas extra (minutos)" id="d-extra" error={errorExtra}
+                  pista={evalSeleccionado.extra_fuente === 'manual'
+                    ? `Asignada a mano. El checador calcula ${formatearMinutos(evalSeleccionado.extra_calculado_min)}.`
+                    : `El checador calcula ${formatearMinutos(evalSeleccionado.extra_calculado_min)}. Escribe otro valor para fijarlo a mano.`}
+                >
+                  <input
+                    id="d-extra" type="number" min={0} max={1440} step={1} inputMode="numeric"
+                    className={`control${errorExtra ? ' control--invalido' : ''}`}
+                    placeholder={String(evalSeleccionado.extra_calculado_min)}
+                    value={extra.minutos}
+                    onChange={e => { setExtra(p => ({ ...p, minutos: e.target.value })); setErrorExtra(null); }}
+                    disabled={guardandoExtra}
+                  />
+                </Campo>
+                <Campo etiqueta="Motivo" id="d-extra-nota" opcional>
+                  <input
+                    id="d-extra-nota" type="text" className="control" maxLength={300}
+                    placeholder="Ej. Cubrió el evento de la noche"
+                    value={extra.nota} onChange={e => setExtra(p => ({ ...p, nota: e.target.value }))}
+                    disabled={guardandoExtra}
+                  />
+                </Campo>
+              </div>
+
+              <div className={styles.evalDiaAcciones}>
+                {evalSeleccionado.extra_fuente === 'manual' && (
+                  <button type="button" className="btn btn--fantasma btn--sm" onClick={quitarExtra} disabled={guardandoExtra}>
+                    Volver al cálculo del checador
+                  </button>
+                )}
+                <button type="button" className="btn btn--neutro btn--sm" onClick={guardarExtra} disabled={guardandoExtra}>
+                  {guardandoExtra ? <span className="spinner" /> : <IconoLapiz tamano={15} />} Guardar extra
+                </button>
+              </div>
+            </div>
+          )}
         </Modal>
+      )}
+
+      {modalHorario && empleadoActual && (
+        <EditorHorario
+          empleado={empleadoActual}
+          mes={mes}
+          diasLaborales={diasLaborales}
+          onCerrar={() => setModalHorario(false)}
+          onCambio={recargarEvaluacion}
+        />
+      )}
+
+      {modalReglas && (
+        <ReglasAsistencia onCerrar={() => setModalReglas(false)} onCambio={recargarEvaluacion} />
       )}
 
       {/* ── Modal de permiso ── */}

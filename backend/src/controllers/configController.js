@@ -112,4 +112,63 @@ async function publicarEjemploFactura(req, res) {
   }
 }
 
-module.exports = { infoEjemploFactura, descargarEjemploFactura, publicarEjemploFactura, CLAVE_EJEMPLO };
+/* ── Reglas de asistencia (spec 004) ───────────────────────────────────
+ * GET  /api/config/asistencia  — administrador y gerente (el gerente las
+ *                                necesita para entender la evaluación)
+ * PUT  /api/config/asistencia  — solo administrador
+ *
+ * Tienen su propia tabla tipada (`config_asistencia`) en vez de ir al
+ * clave/valor JSON de arriba: la evaluación las lee en cada consulta y el
+ * periodo es un enum que la base debe poder validar. */
+const PERIODOS = ['semana', 'quincena', 'mes'];
+const DEFAULT_ASISTENCIA = { tolerancia_min: 10, umbral_extra_min: 15, periodo_retardos: 'mes' };
+
+const publicaAsistencia = (c) => ({
+  tolerancia_min: c.tolerancia_min,
+  umbral_extra_min: c.umbral_extra_min,
+  periodo_retardos: c.periodo_retardos,
+  actualizado_en: c.actualizado_en ?? null,
+});
+
+async function leerAsistencia(_req, res) {
+  try {
+    const fila = await prisma.config_asistencia.findUnique({ where: { id: 1 } });
+    res.json(publicaAsistencia(fila ?? DEFAULT_ASISTENCIA));
+  } catch (e) {
+    console.error('Error al leer las reglas de asistencia:', e);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+}
+
+async function guardarAsistencia(req, res) {
+  const tolerancia = Number(req.body?.tolerancia_min);
+  const umbral = Number(req.body?.umbral_extra_min);
+  const periodo = req.body?.periodo_retardos;
+
+  // Topes de cordura: una tolerancia de 3 horas no es tolerancia, es otro
+  // turno; y un umbral de extra mayor que un turno entero no dejaría contar
+  // ninguna.
+  if (!Number.isInteger(tolerancia) || tolerancia < 0 || tolerancia > 120) {
+    return res.status(400).json({ error: 'La tolerancia debe ser un número entero de minutos entre 0 y 120.' });
+  }
+  if (!Number.isInteger(umbral) || umbral < 0 || umbral > 480) {
+    return res.status(400).json({ error: 'El umbral de horas extra debe ser un número entero de minutos entre 0 y 480.' });
+  }
+  if (!PERIODOS.includes(periodo)) {
+    return res.status(400).json({ error: 'El periodo de retardos debe ser semana, quincena o mes.' });
+  }
+
+  try {
+    const datos = { tolerancia_min: tolerancia, umbral_extra_min: umbral, periodo_retardos: periodo, actualizado_por: req.usuario.id };
+    const fila = await prisma.config_asistencia.upsert({ where: { id: 1 }, update: datos, create: { id: 1, ...datos } });
+    res.json(publicaAsistencia(fila));
+  } catch (e) {
+    console.error('Error al guardar las reglas de asistencia:', e);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+}
+
+module.exports = {
+  infoEjemploFactura, descargarEjemploFactura, publicarEjemploFactura, CLAVE_EJEMPLO,
+  leerAsistencia, guardarAsistencia,
+};
