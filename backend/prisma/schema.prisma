@@ -54,6 +54,11 @@ model sucursales {
   // no hay registro ni justificación. Por defecto lunes a sábado.
   dias_laborales String @default("1,2,3,4,5,6") @db.VarChar(20)
 
+  // Día en que arranca la semana de la unidad (1=Lunes … 7=Domingo). El
+  // negocio no tiene una semana única: cada cocina cierra la suya en un día
+  // distinto (spec 005 §7), y el resumen semanal del empleado se corta ahí.
+  inicio_semana Int @default(1)
+
   // Empresa a la que pertenece la unidad. De aquí se deriva la empresa por
   // defecto de un gerente (que está acotado a su sucursal). Es opcional a
   // nivel de columna para no romper la migración sobre los datos que ya
@@ -637,4 +642,8 @@ enum EstadoDocumento {
 enum OrigenDocumento {
   unidad
   proveedor
+  // Resumen semanal de asistencia de un empleado, firmado en papel y
+  // archivado desde Asistencias (spec 005). No sale de un cajón de
+  // documentos activos: se genera y se archiva en el mismo acto.
+  asistencia
 }

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { mesEmpleado, guardarDia, reporteUnidad } = require('../controllers/asistenciasController');
 const horarios = require('../controllers/horariosController');
+const resumenes = require('../controllers/resumenController');
 const { verificarToken, soloRol } = require('../middleware/auth');
 
 router.use(verificarToken);
@@ -22,5 +23,11 @@ router.get('/evaluacion', soloRol('administrador', 'gerente'), horarios.evaluaci
 router.get('/acta', soloRol('administrador', 'gerente'), horarios.actaPDF);
 router.put('/horas-extra', soloRol('administrador', 'gerente'), horarios.asignarExtra);
 router.delete('/horas-extra', soloRol('administrador', 'gerente'), horarios.quitarExtra);
+
+// Resumen semanal por empleado (spec 005): JSON o PDF bajo demanda, lote de
+// toda la unidad y archivo en el Histórico. Mismo alcance que la evaluación.
+router.get('/resumen', soloRol('administrador', 'gerente'), resumenes.resumen);
+router.get('/resumen/lote', soloRol('administrador', 'gerente'), resumenes.resumenLote);
+router.post('/resumen/historico', soloRol('administrador', 'gerente'), resumenes.mandarAlHistorico);
 
 module.exports = router;

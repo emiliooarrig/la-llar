@@ -8,12 +8,14 @@ import BarraFiltros from '../components/BarraFiltros';
 import EstadoDato from '../components/EstadoDato';
 import EditorHorario from '../components/EditorHorario';
 import ReglasAsistencia from '../components/ReglasAsistencia';
+import ResumenSemanal from '../components/ResumenSemanal';
 import {
   IconoChevron, IconoDescargar, IconoCandado, IconoCalendario, IconoAlerta, IconoInfo, IconoLapiz,
 } from '../components/Iconos';
 import { useFiltrosURL } from '../hooks/useFiltrosURL';
 import { confirmar, toast, avisoError } from '../lib/alertas';
 import { aDatetimeLocal } from '../lib/ventanas';
+import { ETIQUETA_EVAL, formatearMinutos, fechaLegible } from '../lib/asistencia';
 import styles from './Asistencias.module.css';
 
 /* ── Constantes de calendario ───────────────────────────── */
@@ -111,31 +113,7 @@ function estadoPermiso(v) {
 
 const FORM_DIA = { entrada: '', salida: '', tipo: '', nota: '' };
 
-/* ── Evaluación contra horario (spec 004) ───────────────── */
-const ETIQUETA_EVAL = {
-  puntual: 'Puntual',
-  retardo: 'Retardo',
-  falta: 'Falta',
-  incompleto: 'Incompleto',
-  pendiente: 'Pendiente',
-  sin_horario: 'Sin horario',
-  descanso: 'Descanso',
-  justificado: 'Justificado',
-};
 const TEXTO_PERIODO = { semana: 'la semana', quincena: 'la quincena', mes: 'el mes' };
-
-/** Minutos → "1h 20m" / "45m". Para la extra, donde "0h" no dice nada. */
-function formatearMinutos(min) {
-  if (!min) return '0m';
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  if (h === 0) return `${m}m`;
-  return m === 0 ? `${h}h` : `${h}h ${m}m`;
-}
-
-function fechaLegible(fecha) {
-  return new Date(`${fecha}T00:00:00`).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
-}
 
 export default function Asistencias() {
   const { usuario } = useAuth();
@@ -855,6 +833,18 @@ export default function Asistencias() {
             </p>
           )}
         </section>
+      )}
+
+      {/* Resumen semanal para firma (spec 005). */}
+      {empleadoActual && unidad && (
+        <ResumenSemanal
+          key={`${empleadoActual.id}-${mes}`}
+          empleado={empleadoActual}
+          sucursalId={Number(unidad)}
+          mes={mes}
+          version={versionEval}
+          esAdmin={!esGerente}
+        />
       )}
 
       {empleadoSel && resumen && (

@@ -43,8 +43,10 @@ function normalizarDiasLaborales(entrada) {
 }
 
 /* Valida y normaliza el cuerpo de alta/edición de una unidad (sucursal).
- * Devuelve { error } si algo falla, o { nombre, dias_laborales } saneados. */
-function validarDatosUnidad({ nombre, dias_laborales }) {
+ * Devuelve { error } si algo falla, o { nombre, dias_laborales, inicio_semana } saneados.
+ * `inicio_semana` solo viene si se envió: al editar sin él se conserva el
+ * que tenía la unidad, en vez de devolverla en silencio al lunes. */
+function validarDatosUnidad({ nombre, dias_laborales, inicio_semana }) {
   const nombreLimpio = nombre?.trim();
   if (!nombreLimpio) return { error: 'El nombre de la unidad es requerido' };
   if (nombreLimpio.length > NOMBRE_MAX) {
@@ -59,7 +61,18 @@ function validarDatosUnidad({ nombre, dias_laborales }) {
     dias = res.dias;
   }
 
-  return { nombre: nombreLimpio, dias_laborales: dias };
+  const datos = { nombre: nombreLimpio, dias_laborales: dias };
+
+  // Día en que arranca la semana de la unidad (spec 005): 1=lunes … 7=domingo.
+  if (inicio_semana !== undefined && inicio_semana !== null && inicio_semana !== '') {
+    const n = Number(inicio_semana);
+    if (!Number.isInteger(n) || n < 1 || n > 7) {
+      return { error: 'El inicio de semana debe ser un día del 1 (lunes) al 7 (domingo)' };
+    }
+    datos.inicio_semana = n;
+  }
+
+  return datos;
 }
 
 /* Adjunta a cada unidad el conteo de empleados activos.
@@ -254,7 +267,11 @@ async function crear(req, res) {
     if (existente) return res.status(409).json({ error: 'Ya existe una unidad con ese nombre' });
 
     const unidad = await prisma.sucursales.create({
-      data: { nombre: datos.nombre, dias_laborales: datos.dias_laborales },
+      data: {
+        nombre: datos.nombre,
+        dias_laborales: datos.dias_laborales,
+        ...(datos.inicio_semana ? { inicio_semana: datos.inicio_semana } : {}),
+      },
       include: INCLUDE_RESUMEN,
     });
     res.status(201).json({ ...unidad, empleados_activos: 0 });
@@ -280,7 +297,11 @@ async function actualizar(req, res) {
 
     const unidad = await prisma.sucursales.update({
       where: { id },
-      data: { nombre: datos.nombre, dias_laborales: datos.dias_laborales },
+      data: {
+        nombre: datos.nombre,
+        dias_laborales: datos.dias_laborales,
+        ...(datos.inicio_semana ? { inicio_semana: datos.inicio_semana } : {}),
+      },
       include: INCLUDE_RESUMEN,
     });
     const [conData] = await adjuntarEmpleadosActivos([unidad]);

@@ -38,9 +38,9 @@ const RECURSO = {
 };
 
 const FORMULARIO = {
-  vacio: { nombre: '', dias: POR_DEFECTO },
-  desde: u => ({ nombre: u.nombre, dias: parseDias(u.dias_laborales) }),
-  aPayload: f => ({ nombre: f.nombre.trim(), dias_laborales: f.dias }),
+  vacio: { nombre: '', dias: POR_DEFECTO, inicio_semana: 1 },
+  desde: u => ({ nombre: u.nombre, dias: parseDias(u.dias_laborales), inicio_semana: u.inicio_semana ?? 1 }),
+  aPayload: f => ({ nombre: f.nombre.trim(), dias_laborales: f.dias, inicio_semana: Number(f.inicio_semana) }),
   validar: f => {
     const e = {};
     if (!f.nombre.trim()) e.nombre = 'El nombre es obligatorio.';
@@ -79,9 +79,26 @@ const FORMULARIO = {
           })}
         </div>
       </Campo>
+
+      {/* Cada cocina cierra su semana en un día distinto (spec 005): el
+          resumen semanal que firma el empleado se corta aquí. */}
+      <Campo
+        etiqueta="La semana empieza el" id="u-inicio-semana"
+        pista="Define la semana del resumen de asistencia que se imprime para firma."
+      >
+        <select
+          id="u-inicio-semana" className="control"
+          value={form.inicio_semana} onChange={e => cambiar('inicio_semana', Number(e.target.value))}
+          disabled={guardando}
+        >
+          {NOMBRES_DIA.map((nombre, i) => <option key={nombre} value={i + 1}>{nombre}</option>)}
+        </select>
+      </Campo>
     </>
   ),
 };
+
+const NOMBRES_DIA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 export default function AdminUnidades() {
   return <CatalogoDocumentos recurso={RECURSO} formulario={FORMULARIO} />;

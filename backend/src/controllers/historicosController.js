@@ -14,8 +14,8 @@ const prisma = new PrismaClient();
 async function listar(req, res) {
   const { origen, busqueda } = req.query;
 
-  if (origen && !['unidad', 'proveedor'].includes(origen)) {
-    return res.status(400).json({ error: "origen debe ser 'unidad' o 'proveedor'" });
+  if (origen && !['unidad', 'proveedor', 'asistencia'].includes(origen)) {
+    return res.status(400).json({ error: "origen debe ser 'unidad', 'proveedor' o 'asistencia'" });
   }
 
   try {

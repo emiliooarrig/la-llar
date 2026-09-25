@@ -111,6 +111,15 @@ function periodoDe(fecha, periodo) {
   return { clave: mes, desde, hasta };
 }
 
+/** Primer día de la semana que contiene `fecha`, para una semana que
+ *  arranca en `diaInicio` (1 = lunes … 7 = domingo). Cada unidad define el
+ *  suyo (spec 005): con inicio en miércoles, el martes pertenece a la
+ *  semana que empezó el miércoles anterior. */
+function inicioSemanaDe(fecha, diaInicio = 1) {
+  const atras = (diaSemana(fecha) - diaInicio + 7) % 7;
+  return sumarDias(fecha, -atras);
+}
+
 /** Fecha de hoy en la zona de operación del negocio (America/Mexico_City),
  *  sin depender de la zona del servidor: en Hostinger el servidor corre en
  *  UTC, y a las 19:00 de México ya sería "mañana". */
@@ -132,5 +141,6 @@ module.exports = {
   fechasEntre,
   rangoMes,
   periodoDe,
+  inicioSemanaDe,
   hoyMX,
 };

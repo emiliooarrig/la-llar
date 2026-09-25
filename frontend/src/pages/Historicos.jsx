@@ -13,6 +13,11 @@ import { confirmar, toast, avisoError } from '../lib/alertas';
 
 const FILTROS_BASE = { q: '', origen: 'todos' };
 
+// `asistencia`: resúmenes semanales firmados que se archivan desde
+// Asistencias (spec 005). Acero, como el resto de lo que es de personal.
+const ETIQUETA_ORIGEN = { unidad: 'Unidad', proveedor: 'Proveedor', asistencia: 'Asistencia' };
+const TONO_ORIGEN = { unidad: 'naranja', proveedor: 'exito', asistencia: 'acero' };
+
 export default function Historicos() {
   const { filtros, setFiltro, limpiar, hayFiltros, clave } = useFiltrosURL(FILTROS_BASE);
 
@@ -39,6 +44,7 @@ export default function Historicos() {
   const conteo = useMemo(() => ({
     unidad: documentos.filter(d => d.origen === 'unidad').length,
     proveedor: documentos.filter(d => d.origen === 'proveedor').length,
+    asistencia: documentos.filter(d => d.origen === 'asistencia').length,
   }), [documentos]);
 
   const filtrados = useMemo(() => {
@@ -87,8 +93,8 @@ export default function Historicos() {
       clave: 'origen',
       titulo: 'Origen',
       orden: d => d.origen,
-      render: d => <Insignia tono={d.origen === 'unidad' ? 'naranja' : 'exito'} punto={false}>
-        {d.origen === 'unidad' ? 'Unidad' : 'Proveedor'}
+      render: d => <Insignia tono={TONO_ORIGEN[d.origen] ?? 'neutro'} punto={false}>
+        {ETIQUETA_ORIGEN[d.origen] ?? d.origen}
       </Insignia>,
     },
     {
@@ -157,6 +163,7 @@ export default function Historicos() {
             { valor: 'todos', texto: `Todos (${documentos.length})` },
             { valor: 'unidad', texto: `Unidades (${conteo.unidad})` },
             { valor: 'proveedor', texto: `Proveedores (${conteo.proveedor})` },
+            { valor: 'asistencia', texto: `Resúmenes de asistencia (${conteo.asistencia})` },
           ],
         }]}
         onLimpiar={hayFiltros ? limpiar : null}

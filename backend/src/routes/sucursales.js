@@ -18,6 +18,7 @@ router.get('/', verificarToken, async (_req, res) => {
         id: true,
         nombre: true,
         dias_laborales: true,
+        inicio_semana: true,
         empresa_id: true,
         empresa: { select: { id: true, nombre: true } },
       },

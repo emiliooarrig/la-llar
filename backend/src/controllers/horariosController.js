@@ -32,7 +32,14 @@ async function empleadoConAlcance(req, idCrudo) {
 
   const empleado = await prisma.empleados.findUnique({
     where: { id },
-    include: { sucursal: { select: { id: true, nombre: true, dias_laborales: true } } },
+    include: {
+      sucursal: {
+        select: {
+          id: true, nombre: true, dias_laborales: true, inicio_semana: true,
+          empresa: { select: { id: true, nombre: true } },
+        },
+      },
+    },
   });
   if (!empleado) return { status: 404, error: 'Empleado no encontrado' };
   if (req.usuario.rol === 'gerente' && empleado.sucursal_id !== req.usuario.sucursal_id) {
@@ -506,5 +513,9 @@ module.exports = {
   quitarExtra,
   evaluacion,
   actaPDF,
+  // Compartidos con el resumen semanal (spec 005), que consume el MISMO
+  // motor de evaluación en vez de recalcular reglas por su cuenta.
   leerConfig,
+  empleadoConAlcance,
+  evaluarRango,
 };
