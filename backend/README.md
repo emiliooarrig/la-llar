@@ -46,6 +46,12 @@ node --test tests/empresas.test.js         # un solo archivo
 node --test --test-name-pattern "empresa"  # por nombre de prueba
 ```
 
+Las suites corren **de una en una** (`--test-concurrency=1`), no en paralelo. Comparten la
+misma base de datos y el mismo directorio `uploads/`, así que en paralelo se pisan: dos
+suites subiendo y borrando archivos a la vez hacen que cualquier comprobación del tipo «esta
+subida rechazada no dejó nada en disco» falle de forma intermitente por culpa de la otra.
+Serializarlas cuesta unos segundos y elimina la clase entera de falsos negativos.
+
 **Las pruebas corren contra la base de datos real** que indique `DATABASE_URL`, no
 contra mocks: son pruebas de integración de endpoints, como pide la constitución del
 proyecto (§8). Cada suite crea los registros temporales que necesita y los borra al

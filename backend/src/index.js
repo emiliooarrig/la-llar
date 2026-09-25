@@ -21,6 +21,7 @@ const registroRoutes = require('./routes/registro');
 const facturasRoutes = require('./routes/facturas');
 const configRoutes = require('./routes/config');
 const alertasRoutes = require('./routes/alertas');
+const valesRoutes = require('./routes/vales');
 
 const app = express();
 const PORT = process.env.PORT;
@@ -58,6 +59,7 @@ app.use('/api/empresas', empresasRoutes);
 app.use('/api/facturas', facturasRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/alertas', alertasRoutes);
+app.use('/api/vales', valesRoutes);
 // Público (sin verificarToken): alta de proveedor por link de invitación.
 app.use('/api/registro', registroRoutes);
 

@@ -25,7 +25,7 @@ model empresas {
 
   sucursales sucursales[]
   facturas   facturas[]
-  // La relación inversa de vales llega con la spec 002.
+  vales      vales[]
 }
 
 model usuarios {
@@ -141,7 +141,7 @@ model correcciones_asistencia {
 
 model proveedores {
   id        Int      @id @default(autoincrement())
-  nombre String  @db.VarChar(150)
+  nombre    String   @db.VarChar(150)
   // Único: el RFC identifica fiscalmente al proveedor, y con el alta por link
   // (spec 001 HU-1) el catálogo ya no lo llena solo el administrador. Sin esta
   // restricción, dos registros simultáneos con el mismo RFC crearían dos
@@ -237,7 +237,7 @@ model documentos_historicos {
 // (de él se extrae todo lo demás) y el PDF es la representación impresa que
 // revisa una persona. Guardar solo uno de los dos deja el expediente cojo.
 model facturas {
-  id           Int    @id @default(autoincrement())
+  id           Int @id @default(autoincrement())
   proveedor_id Int
   empresa_id   Int
 
@@ -356,10 +356,56 @@ model invitaciones_proveedor {
 // tabla `ejemplos_factura` de una sola fila, o guardar la metadata en un
 // archivo suelto junto al PDF, que es justo lo que se desincroniza.
 model configuracion {
-  clave         String   @id @db.VarChar(60)
-  valor         Json
+  clave           String   @id @db.VarChar(60)
+  valor           Json
   actualizado_por Int?
   actualizado_en  DateTime @updatedAt
+}
+
+// Vale azul: el comprobante de un gasto menor que el solicitante adelantó
+// de su bolsillo y que la empresa le reembolsa (spec 002).
+//
+// El vale es un PAPEL FÍSICO, firmado a mano por quien autoriza el gasto.
+// Lo que vive aquí es su digitalización en PDF más los datos que se leen de
+// él; la firma no se captura ni se dibuja en pantalla: el autorizador mira
+// el papel escaneado y comprueba que está firmado antes de autorizar.
+// `autorizado_por` + `fecha_autorizacion` son la constancia de ESA revisión,
+// no una firma electrónica.
+model vales {
+  id             Int @id @default(autoincrement())
+  // Quién pide el reembolso: un usuario del sistema, no un empleado de
+  // nómina. Son tablas distintas y no se mezclan (CLAUDE.md).
+  solicitante_id Int
+  empresa_id     Int
+
+  // Decimal, nunca Float: es dinero. El tope de $500 cabe de sobra en 10,2.
+  monto Decimal @db.Decimal(10, 2)
+
+  // Folio impreso en el papel, tecleado por quien sube el vale. Es la clave
+  // de deduplicación: el mismo papel no se puede cobrar dos veces. Único en
+  // todo el sistema, como el folio fiscal de una factura.
+  uid String @unique @db.VarChar(64)
+
+  ruta_comprobante String @db.VarChar(500)
+  nombre_original  String @db.VarChar(255)
+  tipo_mime        String @db.VarChar(100)
+
+  concepto String? @db.VarChar(300)
+
+  estado EstadoVale @default(pendiente)
+
+  autorizado_por     Int?
+  fecha_autorizacion DateTime?
+  motivo_rechazo     String?   @db.VarChar(300)
+
+  creado_en DateTime @default(now())
+
+  empresa empresas @relation(fields: [empresa_id], references: [id])
+
+  // El bloqueo "uno a la vez" pregunta justo por esto: vales de un
+  // solicitante que siguen sin resolverse.
+  @@index([solicitante_id, estado])
+  @@index([empresa_id, estado])
 }
 
 model ventanas_carga {
@@ -393,6 +439,16 @@ enum Modulo {
   unidades
   // Permiso temporal para que los gerentes editen asistencias de su unidad.
   asistencias
+}
+
+// Un vale no usa EstadoDocumento a propósito: "desaprobado" y
+// "no_autorizado" no son lo mismo. Un documento rechazado se vuelve a subir
+// corregido; un vale no autorizado es un gasto que la empresa decidió no
+// reembolsar, y sigue bloqueando al solicitante hasta que se resuelva.
+enum EstadoVale {
+  pendiente
+  autorizado
+  no_autorizado
 }
 
 enum EstadoDocumento {

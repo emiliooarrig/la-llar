@@ -1,6 +1,6 @@
 import {
   IconoAsistencias, IconoProveedores, IconoUnidades, IconoEmpleados,
-  IconoUsuarios, IconoDocumentos, IconoHistorico, IconoEmpresa, IconoFactura,
+  IconoUsuarios, IconoDocumentos, IconoHistorico, IconoEmpresa, IconoFactura, IconoVale,
 } from '../components/Iconos';
 
 export const ETIQUETA_ROL = {
@@ -28,11 +28,13 @@ export const MODULOS = {
     { titulo: 'Empleados', desc: 'Alta, edición y baja de la plantilla.', to: '/admin/empleados', Icono: IconoEmpleados },
     { titulo: 'Usuarios', desc: 'Accesos al sistema: roles y credenciales.', to: '/admin/usuarios', Icono: IconoUsuarios },
     { titulo: 'Histórico', desc: 'Archivo permanente de documentos.', to: '/admin/historicos', Icono: IconoHistorico },
+    { titulo: 'Vales', desc: 'Reembolsos de gastos menores por autorizar.', to: '/admin/vales', Icono: IconoVale },
     { titulo: 'Empresas', desc: 'Razones sociales a las que se factura.', to: '/admin/empresas', Icono: IconoEmpresa },
   ],
   gerente: [
     { titulo: 'Asistencias', desc: 'Entradas y salidas de tu unidad.', to: '/gerente/asistencias', Icono: IconoAsistencias },
     { titulo: 'Unidades', desc: 'Documentos de tu cocina.', to: '/gerente/unidades', Icono: IconoUnidades },
+    { titulo: 'Vales', desc: 'Pide el reembolso de un gasto menor.', to: '/gerente/vales', Icono: IconoVale },
   ],
   proveedor: [
     { titulo: 'Mis facturas', desc: 'Sube tus facturas y sigue su revisión.', to: '/proveedor/facturas', Icono: IconoFactura },

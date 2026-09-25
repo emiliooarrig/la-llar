@@ -29,6 +29,10 @@ export const IconoDocumentos = p => <Svg {...p}><path d="M14 2H6a2 2 0 0 0-2 2v1
 // con líneas de texto) porque lo que caracteriza a una factura es que
 // lleva una cifra dentro.
 export const IconoFactura = p => <Svg {...p}><path d="M6 2h9l4 4v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" /><path d="M15 2v5h4" /><path d="M9 13h6M9 17h3" /></Svg>;
+// Vale de reembolso: un talón con su troquel. Se distingue de IconoFactura
+// (hoja con importe) porque un vale es un papel pequeño que se desprende,
+// no un comprobante fiscal.
+export const IconoVale = p => <Svg {...p}><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V8z" /><path d="M13 6v2M13 11v2M13 16v2" /></Svg>;
 export const IconoEmpresa = p => <Svg {...p}><path d="M3 21h18M5 21V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v16" /><path d="M14 9h4a1 1 0 0 1 1 1v11" /><path d="M8 8h2M8 12h2M8 16h2" /></Svg>;
 export const IconoHistorico = p => <Svg {...p}><rect x="2" y="3" width="20" height="5" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4" /></Svg>;
 

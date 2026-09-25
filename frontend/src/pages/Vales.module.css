@@ -1,0 +1,59 @@
+/* Vales azules. */
+
+/* Panel informativo (HU-2). Es lo primero de la página a propósito: las
+   tres reglas son la causa de casi todo rechazo, y leerlas antes de subir
+   ahorra el viaje de ida y vuelta. El azul no es decoración — es el color
+   del vale del que habla la pantalla. */
+.panel {
+  display: flex; gap: var(--e4); align-items: flex-start;
+  border: 1px solid rgba(21, 101, 192, 0.22);
+  border-left: 3px solid var(--color-acero, #1565C0);
+  background: var(--tinte-acero, rgba(21, 101, 192, 0.08));
+  border-radius: var(--radio); padding: var(--e4) var(--e5);
+  margin-bottom: var(--e5);
+}
+.panelIcono { color: var(--color-acero, #1565C0); flex-shrink: 0; display: grid; place-items: center; }
+.panelCuerpo { display: flex; flex-direction: column; gap: var(--e2); min-width: 0; }
+.panelTitulo { font-size: 13.5px; font-weight: 600; color: var(--color-texto); }
+.panelLista { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.panelLista li { font-size: 13px; color: var(--color-texto-suave); line-height: 1.5; }
+
+/* Cifras del autorizador: cuánto hay por resolver y por cuánto dinero. */
+.cifras { display: flex; flex-wrap: wrap; gap: var(--e6); margin-bottom: var(--e5); }
+.cifra { display: flex; flex-direction: column; gap: 2px; }
+.cifraNumero { font-size: 24px; font-weight: 600; color: var(--color-texto); font-variant-numeric: tabular-nums; line-height: 1.15; }
+.cifraPendiente { color: var(--color-acero, #1565C0); }
+.cifraEtiqueta { font-size: 12px; color: var(--color-texto-suave); }
+
+.importe { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+.folio { font-family: var(--fuente-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 12px; }
+.apilado { display: flex; flex-direction: column; line-height: 1.4; min-width: 0; }
+.apiladoSec { font-size: 11.5px; color: var(--texto-muted); }
+
+/* El motivo del rechazo se pinta en la propia fila: es lo que el
+   solicitante tiene que leer para poder seguir adelante. */
+.motivo { display: flex; align-items: flex-start; gap: 5px; font-size: 11.5px; color: var(--color-error); margin-top: 3px; line-height: 1.4; }
+.motivo svg { flex-shrink: 0; margin-top: 1px; }
+
+/* Selector de archivo del formulario de alta. */
+.archivo {
+  display: flex; align-items: center; gap: var(--e3); width: 100%;
+  border: 1px dashed var(--color-borde); border-radius: var(--radio);
+  padding: var(--e3); background: var(--color-blanco-hueso);
+  cursor: pointer; transition: border-color .15s, background-color .15s;
+}
+.archivo:hover { border-color: var(--color-naranja); background: var(--tinte-naranja); }
+.archivoElegido { border-style: solid; border-color: var(--color-exito); background: var(--tinte-exito); }
+.archivoIcono { color: var(--color-texto-suave); flex-shrink: 0; }
+.archivoElegido .archivoIcono { color: var(--color-exito); }
+.archivoTexto { display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: left; }
+.archivoNombre { font-size: 12.5px; color: var(--color-texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.archivoPista { font-size: 11.5px; color: var(--texto-muted); }
+
+.campos { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e4); }
+@media (max-width: 620px) { .campos { grid-template-columns: 1fr; } }
+
+/* El monto lleva el símbolo dentro del control, para que nadie lo teclee. */
+.montoCaja { position: relative; display: flex; align-items: center; }
+.montoSimbolo { position: absolute; left: 11px; color: var(--texto-muted); font-size: 14px; pointer-events: none; }
+.montoCaja .control { padding-left: 24px; font-variant-numeric: tabular-nums; }
