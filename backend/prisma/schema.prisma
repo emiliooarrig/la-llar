@@ -23,9 +23,10 @@ model empresas {
   nombre String  @unique @db.VarChar(120)
   activo Boolean @default(true)
 
-  sucursales sucursales[]
-  facturas   facturas[]
-  vales      vales[]
+  sucursales   sucursales[]
+  facturas     facturas[]
+  vales        vales[]
+  aclaraciones aclaraciones[]
 }
 
 model usuarios {
@@ -176,6 +177,7 @@ model proveedores {
   usuarios             usuarios[]
   documentos_proveedor documentos_proveedor[]
   facturas             facturas[]
+  aclaraciones         aclaraciones[]
 }
 
 model documentos_proveedor {
@@ -408,6 +410,82 @@ model vales {
   @@index([empresa_id, estado])
 }
 
+// Aclaración: un hilo entre un proveedor y la administración sobre uno o
+// más de SUS documentos —una factura que no cuadra, un complemento que no
+// aparece— para resolver la duda dentro del sistema en vez de por correo
+// con archivos sueltos (spec 003).
+//
+// Solo de proveedores: el negocio lo confirmó (spec 003 §7). Por eso
+// `proveedor_id` es obligatorio y no hay columna de sucursal.
+//
+// La empresa se HEREDA del documento referenciado, no la elige nadie: una
+// aclaración sobre una factura a Confia es un asunto de Confia. Todos los
+// documentos de una misma aclaración son de la misma empresa.
+model aclaraciones {
+  id           Int              @id @default(autoincrement())
+  proveedor_id Int
+  empresa_id   Int
+  asunto       String           @db.VarChar(200)
+  estado       EstadoAclaracion @default(abierta)
+  creado_por   Int
+  creado_en    DateTime         @default(now())
+  // Quién la cerró y cuándo. Una aclaración cerrada es histórico de solo
+  // lectura; sin estas dos columnas no se sabría quién dio el caso por bueno.
+  cerrada_por  Int?
+  cerrada_en   DateTime?
+
+  proveedor  proveedores             @relation(fields: [proveedor_id], references: [id])
+  empresa    empresas                @relation(fields: [empresa_id], references: [id])
+  documentos aclaracion_documentos[]
+  notas      aclaracion_notas[]
+
+  @@index([proveedor_id, estado])
+  @@index([empresa_id, estado])
+}
+
+// Documento de una aclaración. Es una referencia POLIMÓRFICA (`origen` +
+// `origen_id`) a una factura o a un complemento que ya existen —no se copia
+// el archivo, se apunta a él y se ve con el mismo visor de la spec 001—, o
+// bien un archivo de soporte subido dentro de la propia aclaración, que es
+// el único caso que lleva ruta en disco propia.
+//
+// Una referencia polimórfica no puede tener FK. Que el documento exista y
+// sea del proveedor de la aclaración lo valida el controlador al crearla.
+model aclaracion_documentos {
+  id              Int              @id @default(autoincrement())
+  aclaracion_id   Int
+  origen          OrigenAclaracion
+  // Id de la factura o del complemento; null en el soporte subido.
+  origen_id       Int?
+  // Solo para soporte: el archivo vive en uploads/ con nombre UUID.
+  ruta_archivo    String?          @db.VarChar(500)
+  nombre_original String?          @db.VarChar(255)
+  tipo_mime       String?          @db.VarChar(100)
+  subido_por      Int
+  creado_en       DateTime         @default(now())
+
+  aclaracion aclaraciones @relation(fields: [aclaracion_id], references: [id])
+
+  // El mismo documento no se referencia dos veces en una aclaración. El
+  // soporte lleva origen_id NULL y MySQL admite varios NULL, así que no le
+  // afecta.
+  @@unique([aclaracion_id, origen, origen_id])
+}
+
+// Nota del hilo. Solo se añaden; nunca se editan ni se borran, igual que
+// las observaciones de una factura: el hilo es el registro de lo que se dijo.
+model aclaracion_notas {
+  id            Int      @id @default(autoincrement())
+  aclaracion_id Int
+  texto         String   @db.VarChar(1000)
+  autor_id      Int
+  creado_en     DateTime @default(now())
+
+  aclaracion aclaraciones @relation(fields: [aclaracion_id], references: [id])
+
+  @@index([aclaracion_id])
+}
+
 model ventanas_carga {
   id      Int       @id @default(autoincrement())
   modulo  Modulo    @unique
@@ -449,6 +527,21 @@ enum EstadoVale {
   pendiente
   autorizado
   no_autorizado
+}
+
+enum EstadoAclaracion {
+  abierta
+  cerrada
+}
+
+// Sin `vale`, aunque el plan lo listaba: un vale lo sube un gerente o un
+// administrador (spec 002) y no pertenece a ningún proveedor, así que una
+// aclaración de proveedor nunca podría referenciarlo. Si algún día las
+// aclaraciones se abren a reembolsos, se añade el valor con una migración.
+enum OrigenAclaracion {
+  factura
+  complemento
+  soporte
 }
 
 enum EstadoDocumento {

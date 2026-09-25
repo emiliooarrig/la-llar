@@ -1,6 +1,6 @@
 import {
   IconoAsistencias, IconoProveedores, IconoUnidades, IconoEmpleados,
-  IconoUsuarios, IconoDocumentos, IconoHistorico, IconoEmpresa, IconoFactura, IconoVale,
+  IconoUsuarios, IconoDocumentos, IconoHistorico, IconoEmpresa, IconoFactura, IconoVale, IconoAclaracion,
 } from '../components/Iconos';
 
 export const ETIQUETA_ROL = {
@@ -23,6 +23,7 @@ export const MODULOS = {
     { titulo: 'Asistencias', desc: 'Entradas y salidas por unidad.', to: '/admin/asistencias', Icono: IconoAsistencias },
     { titulo: 'Por revisar', desc: 'Documentos esperando aprobación.', to: '/admin/pendientes', Icono: IconoDocumentos, contador: 'pendientes' },
     { titulo: 'Proveedores', desc: 'Catálogo y documentos de proveedores.', to: '/admin/proveedores', Icono: IconoProveedores },
+    { titulo: 'Aclaraciones', desc: 'Dudas de proveedores sobre sus documentos.', to: '/admin/aclaraciones', Icono: IconoAclaracion },
     { titulo: 'Resumen de facturas', desc: 'Facturas aprobadas y fechas de pago.', to: '/admin/resumen-facturas', Icono: IconoFactura },
     { titulo: 'Unidades', desc: 'Cocinas, sucursales y su papeleo.', to: '/admin/unidades', Icono: IconoUnidades },
     { titulo: 'Empleados', desc: 'Alta, edición y baja de la plantilla.', to: '/admin/empleados', Icono: IconoEmpleados },
@@ -38,8 +39,16 @@ export const MODULOS = {
   ],
   proveedor: [
     { titulo: 'Mis facturas', desc: 'Sube tus facturas y sigue su revisión.', to: '/proveedor/facturas', Icono: IconoFactura },
+    { titulo: 'Aclaraciones', desc: 'Aclara dudas sobre tus facturas.', to: '/proveedor/aclaraciones', Icono: IconoAclaracion },
     { titulo: 'Mis documentos', desc: 'Sube y consulta tu documentación.', to: '/proveedor/documentos', Icono: IconoDocumentos },
   ],
+};
+
+/** Dónde vive la pantalla de aclaraciones de cada rol. La usan quienes
+ *  abren una aclaración desde otra pantalla para llevar allí al usuario. */
+export const RUTA_ACLARACIONES = {
+  administrador: '/admin/aclaraciones',
+  proveedor: '/proveedor/aclaraciones',
 };
 
 export function modulosDe(rol) {

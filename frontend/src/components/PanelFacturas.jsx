@@ -8,8 +8,9 @@ import Campo from './Campo';
 import VisorPDF from './VisorPDF';
 import VisorXML from './VisorXML';
 import MenuAcciones from './MenuAcciones';
+import AbrirAclaracion from './AbrirAclaracion';
 import {
-  IconoOjo, IconoDescargar, IconoCheck, IconoCerrar, IconoDocumentos, IconoAlerta,
+  IconoOjo, IconoDescargar, IconoCheck, IconoCerrar, IconoDocumentos, IconoAlerta, IconoAclaracion,
 } from './Iconos';
 import { useFiltrosURL } from '../hooks/useFiltrosURL';
 import { formatFecha, formatFechaHora, normalizar } from '../lib/formato';
@@ -48,6 +49,7 @@ export default function PanelFacturas({
   const [visorPdf, setVisorPdf] = useState(null);    // { url, nombre, doc }
   const [visorXml, setVisorXml] = useState(null);    // { factura, url, titulo }
   const [revision, setRevision] = useState(null);    // { factura, estado }
+  const [aclarar, setAclarar] = useState(null);      // factura sobre la que se abre aclaración
   const [observacion, setObservacion] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [errorObs, setErrorObs] = useState(null);
@@ -223,6 +225,9 @@ export default function PanelFacturas({
                 { etiqueta: 'Ver el complemento (PDF)', Icono: IconoOjo, separadorAntes: true, onClick: () => setVisorPdf({ doc: { nombre_original: f.complemento.nombre_pdf, tipo_mime: 'application/pdf' }, url: `/facturas/${f.id}/pdf?complemento=1` }) },
                 { etiqueta: 'Ver el complemento (XML)', Icono: IconoDocumentos, onClick: () => setVisorXml({ factura: { ...f.complemento, empresa: f.empresa, total: null }, url: `/facturas/${f.id}/xml?complemento=1&inline=1`, titulo: f.complemento.nombre_xml }) },
               ] : []),
+              // Spec 003: la duda sobre una factura se habla con la factura
+              // a la vista, no por correo con el PDF adjunto.
+              { etiqueta: 'Abrir aclaración', Icono: IconoAclaracion, separadorAntes: true, onClick: () => setAclarar(f) },
               ...(esAdmin && f.estado === 'aprobado' && !f.pago_realizado ? [
                 { etiqueta: 'Marcar como pagada', Icono: IconoCheck, separadorAntes: true, onClick: () => marcarPago(f) },
               ] : []),
@@ -287,6 +292,10 @@ export default function PanelFacturas({
           factura={visorXml.factura} url={visorXml.url} titulo={visorXml.titulo}
           onCerrar={() => setVisorXml(null)}
         />
+      )}
+
+      {aclarar && (
+        <AbrirAclaracion factura={aclarar} onCerrar={() => setAclarar(null)} />
       )}
 
       {revision && (

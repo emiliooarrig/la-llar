@@ -1,0 +1,162 @@
+/* Aclaraciones (spec 003).
+   Bandeja a la izquierda, caso a la derecha. Es la forma de un buzón, y
+   es lo que es: el administrador pasa de una aclaración a otra sin perder
+   la lista de vista. */
+
+/* Cifras de cabecera: cuántas siguen vivas y cuántas esperan a este lado. */
+.cifras { display: flex; flex-wrap: wrap; gap: var(--e6); margin-bottom: var(--e5); }
+.cifra { display: flex; flex-direction: column; gap: 2px; }
+.cifraNumero { font-size: 24px; font-weight: 600; color: var(--color-texto); font-variant-numeric: tabular-nums; line-height: 1.15; }
+.cifraAtencion { color: var(--color-naranja); }
+.cifraEtiqueta { font-size: 12px; color: var(--color-texto-suave); }
+
+/* ── Mesa: bandeja + caso ─────────────────────────────────── */
+.mesa {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  gap: var(--e5);
+  align-items: start;
+}
+
+.bandeja,
+.caso {
+  border: var(--borde);
+  border-radius: var(--radio);
+  background: var(--color-blanco);
+  min-width: 0;
+}
+
+/* La bandeja se queda a la vista mientras el hilo se desplaza. */
+.bandeja { position: sticky; top: calc(var(--alto-barra, 56px) + var(--e4)); max-height: calc(100vh - 180px); overflow-y: auto; }
+
+.lista { list-style: none; margin: 0; padding: var(--e2); display: flex; flex-direction: column; gap: 2px; }
+
+.item {
+  display: flex; flex-direction: column; gap: 4px; width: 100%;
+  padding: var(--e3); border: 0; border-left: 3px solid transparent;
+  border-radius: var(--radio-sm); background: transparent;
+  text-align: left; cursor: pointer; color: inherit; font: inherit;
+  transition: background-color .15s, border-color .15s;
+}
+.item:hover { background: var(--color-blanco-hueso); }
+.item:focus-visible { outline: none; box-shadow: var(--anillo-foco); }
+.itemActivo { background: var(--tinte-naranja); border-left-color: var(--color-naranja); }
+.itemActivo:hover { background: var(--tinte-naranja); }
+.itemCerrado .itemAsunto { color: var(--color-texto-suave); font-weight: 500; }
+
+.itemFila { display: flex; align-items: center; gap: var(--e2); min-width: 0; }
+.itemAsunto {
+  font-size: 13.5px; font-weight: 600; color: var(--color-texto); line-height: 1.35;
+  overflow: hidden; text-overflow: ellipsis; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical; flex: 1; min-width: 0;
+}
+.itemProveedor { font-size: 12.5px; color: var(--color-texto-suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.itemMeta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 11.5px; color: var(--texto-muted); }
+
+/* El punto dice "te toca": es lo único que el ojo necesita encontrar al
+   recorrer la bandeja. */
+.puntoEspera { width: 8px; height: 8px; border-radius: 50%; background: var(--color-naranja); flex-shrink: 0; }
+
+.itemEsqueleto { display: flex; flex-direction: column; gap: 8px; padding: var(--e3); }
+
+.bandejaVacia { padding: var(--e6) var(--e5); font-size: 13px; color: var(--color-texto-suave); display: flex; flex-direction: column; gap: var(--e2); align-items: flex-start; }
+.bandejaVaciaTitulo { font-weight: 600; color: var(--color-texto); }
+.bandejaPie { font-size: 11.5px; color: var(--texto-muted); padding: 0 var(--e4) var(--e3); margin: 0; }
+
+/* ── Caso ─────────────────────────────────────────────────── */
+.casoVacio {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--e2); text-align: center; min-height: 320px; padding: var(--e8) var(--e6);
+  color: var(--texto-muted);
+}
+.casoVacioTitulo { font-size: 14.5px; font-weight: 600; color: var(--color-texto); margin: var(--e2) 0 0; }
+.casoVacioTexto { font-size: 13px; max-width: 360px; margin: 0; line-height: 1.5; }
+.casoCargando { display: flex; flex-direction: column; gap: 10px; padding: var(--e6); }
+
+.detalle { display: flex; flex-direction: column; }
+
+.cabecera { padding: var(--e5) var(--e5) var(--e4); border-bottom: var(--borde); display: flex; flex-direction: column; gap: var(--e2); }
+.volver { display: none; align-self: flex-start; }
+.cabeceraFila { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--e4); flex-wrap: wrap; }
+.cabeceraTexto { min-width: 0; flex: 1; }
+.asunto { font-size: 18px; font-weight: 600; color: var(--color-texto); margin: 0; line-height: 1.3; overflow-wrap: anywhere; }
+.sub { font-size: 12.5px; color: var(--color-texto-suave); margin: 4px 0 0; }
+.cabeceraAcciones { display: flex; align-items: center; gap: var(--e3); flex-shrink: 0; }
+
+.avisoCerrada { margin: var(--e4) var(--e5) 0; }
+.avisoCerrada svg { color: var(--color-texto-suave); }
+
+.seccionCabeza { display: flex; align-items: center; justify-content: space-between; gap: var(--e3); margin-bottom: var(--e3); }
+.seccionTitulo { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--color-texto-suave); display: inline-flex; align-items: center; gap: 6px; }
+.seccionConteo { font-variant-numeric: tabular-nums; color: var(--texto-muted); font-weight: 500; }
+
+/* ── Documentos ───────────────────────────────────────────── */
+.documentos { padding: var(--e4) var(--e5); border-bottom: var(--borde); }
+.docs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--e2); }
+
+.doc {
+  display: flex; align-items: center; gap: var(--e3);
+  padding: var(--e3); border: var(--borde); border-radius: var(--radio-sm);
+  background: var(--color-blanco-hueso);
+}
+.docNoDisponible { opacity: .6; }
+.docIcono {
+  width: 34px; height: 34px; border-radius: var(--radio-sm); flex-shrink: 0;
+  display: grid; place-items: center;
+  background: var(--tinte-naranja); color: var(--color-naranja-oscuro);
+}
+/* El soporte es otra cosa que la factura: lo trae la conversación, no el
+   ciclo fiscal. Otro tono para que se distinga sin leer la etiqueta. */
+.docIconoSoporte { background: var(--tinte-acero); color: var(--color-acero); }
+.docCuerpo { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.docTipo { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--color-texto-suave); }
+.docNombre { font-size: 13px; font-weight: 500; color: var(--color-texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; gap: var(--e3); align-items: baseline; }
+.docImporte { font-variant-numeric: tabular-nums; font-weight: 600; }
+.docMeta { font-size: 11.5px; color: var(--texto-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.docAcciones { display: flex; gap: var(--e1); flex-shrink: 0; }
+
+/* ── Hilo ─────────────────────────────────────────────────── */
+.conversacion { padding: var(--e4) var(--e5) var(--e5); }
+
+.hilo {
+  list-style: none; margin: 0; padding: var(--e2) 2px;
+  display: flex; flex-direction: column; gap: var(--e4);
+  max-height: 460px; overflow-y: auto;
+}
+
+.nota { display: flex; flex-direction: column; max-width: 82%; }
+.notaMia { align-self: flex-end; align-items: flex-end; }
+.notaOtra { align-self: flex-start; align-items: flex-start; }
+
+/* El color del globo dice QUIÉN habla (administración o proveedor), no si
+   eres tú: así el hilo se lee igual desde los dos lados. */
+.globo { padding: var(--e3) var(--e4); border-radius: var(--radio); border: var(--borde); }
+.globoAdmin { background: var(--tinte-naranja); border-color: transparent; }
+.globoProveedor { background: var(--color-blanco-hueso); }
+.notaMia .globo { border-bottom-right-radius: 4px; }
+.notaOtra .globo { border-bottom-left-radius: 4px; }
+
+.notaTexto { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--color-texto); white-space: pre-wrap; overflow-wrap: anywhere; }
+.notaPie { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 11.5px; color: var(--texto-muted); margin: 4px 2px 0; }
+.notaRol { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--color-texto-suave); }
+
+.redactor { margin-top: var(--e4); display: flex; flex-direction: column; gap: var(--e2); }
+.redactorCampo { resize: vertical; min-height: 72px; }
+.redactorPie { display: flex; align-items: center; justify-content: space-between; gap: var(--e3); }
+
+/* ── Estrecho: una columna, la lista o el caso ─────────────── */
+@media (max-width: 900px) {
+  .mesa { grid-template-columns: minmax(0, 1fr); }
+  .bandeja { position: static; max-height: none; }
+  .mesaConDetalle .bandeja { display: none; }
+  .mesa:not(.mesaConDetalle) .caso { display: none; }
+  .volver { display: inline-flex; }
+  .nota { max-width: 92%; }
+}
+
+@media (max-width: 640px) {
+  .cabecera, .documentos, .conversacion { padding-left: var(--e4); padding-right: var(--e4); }
+  .avisoCerrada { margin-left: var(--e4); margin-right: var(--e4); }
+  .doc { flex-wrap: wrap; }
+  .docAcciones { width: 100%; justify-content: flex-end; }
+}

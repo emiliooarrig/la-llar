@@ -33,6 +33,10 @@ export const IconoFactura = p => <Svg {...p}><path d="M6 2h9l4 4v15a1 1 0 0 1-1 
 // (hoja con importe) porque un vale es un papel pequeño que se desprende,
 // no un comprobante fiscal.
 export const IconoVale = p => <Svg {...p}><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V8z" /><path d="M13 6v2M13 11v2M13 16v2" /></Svg>;
+// Aclaración: globo de conversación con un signo de pregunta. No es un
+// documento más —esos ya tienen su hoja— sino la duda que se habla sobre
+// ellos, y eso es lo que tiene que decir el icono en el rail.
+export const IconoAclaracion = p => <Svg {...p}><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /><path d="M9.5 8.5a2.5 2.5 0 0 1 4.85.83c0 1.67-2.35 2.17-2.35 2.17M12 14h.01" /></Svg>;
 export const IconoEmpresa = p => <Svg {...p}><path d="M3 21h18M5 21V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v16" /><path d="M14 9h4a1 1 0 0 1 1 1v11" /><path d="M8 8h2M8 12h2M8 16h2" /></Svg>;
 export const IconoHistorico = p => <Svg {...p}><rect x="2" y="3" width="20" height="5" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4" /></Svg>;
 

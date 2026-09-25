@@ -21,6 +21,7 @@ import FacturasProveedor from './pages/FacturasProveedor';
 import ResumenFacturas from './pages/ResumenFacturas';
 import MisFacturas from './pages/MisFacturas';
 import Vales from './pages/Vales';
+import Aclaraciones from './pages/Aclaraciones';
 import SinAcceso from './pages/SinAcceso';
 
 /** Cada rol aterriza en lo primero que necesita ver al abrir el sistema. */
@@ -59,6 +60,7 @@ export default function App() {
           <Route path="/admin/proveedores/:id/facturas" element={soloAdmin(<FacturasProveedor />)} />
           <Route path="/admin/resumen-facturas" element={soloAdmin(<ResumenFacturas />)} />
           <Route path="/admin/vales" element={soloAdmin(<Vales />)} />
+          <Route path="/admin/aclaraciones" element={soloAdmin(<Aclaraciones />)} />
           <Route path="/admin/unidades" element={soloAdmin(<AdminUnidades />)} />
           <Route path="/admin/unidades/:id" element={soloAdmin(<UnidadDetalle />)} />
           <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
@@ -86,6 +88,10 @@ export default function App() {
           <Route
             path="/proveedor/documentos"
             element={<Protegida roles={['proveedor']}><MisDocumentos /></Protegida>}
+          />
+          <Route
+            path="/proveedor/aclaraciones"
+            element={<Protegida roles={['proveedor']}><Aclaraciones /></Protegida>}
           />
           <Route path="/proveedor/*" element={<Navigate to="/proveedor/facturas" replace />} />
 
