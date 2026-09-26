@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import Layout from '../components/Layout';
 import EstadoDato from '../components/EstadoDato';
 import Insignia, { Formato } from '../components/Insignia';
-import { IconoProveedores, IconoUnidades, IconoDescargar, IconoCheck, IconoCerrar } from '../components/Iconos';
+import VisorPDF, { esVisualizable } from '../components/VisorPDF';
+import { IconoProveedores, IconoUnidades, IconoDescargar, IconoCheck, IconoCerrar, IconoOjo } from '../components/Iconos';
 import { formatFecha, diasDesde, plural } from '../lib/formato';
 import { descargarArchivo } from '../lib/descargas';
 import { toast, avisoError } from '../lib/alertas';
@@ -23,6 +24,10 @@ export default function Pendientes() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
   const [procesando, setProcesando] = useState(null);
+  // Documento abierto en el visor. Revisar un PDF no debería obligar a
+  // descargarlo: se abre aquí mismo y se decide desde la barra del visor.
+  const [visor, setVisor] = useState(null);
+  const cerrarVisor = useCallback(() => setVisor(null), []);
 
   const filtroTipo = params.get('tipo');
 
@@ -69,14 +74,33 @@ export default function Pendientes() {
       }));
       invalidarPendientes();
       toast(estado === 'aprobado' ? 'Documento aprobado' : 'Documento rechazado');
+      return true;
     } catch {
       await avisoError('No se pudo actualizar el documento. Vuelve a intentarlo.');
+      return false;
     } finally {
       setProcesando(null);
     }
   }
 
   const hayCola = datos.total > 0;
+
+  /* PDF → visor; Excel o Word no se pueden pintar en el navegador y se
+     descargan como antes. */
+  function abrir(doc) {
+    if (esVisualizable(doc)) setVisor(doc);
+    else descargarArchivo(`${TIPO_META[doc.tipo].base}/${doc.doc_id}/descargar`, doc.nombre_original);
+  }
+
+  /* Decidir desde el visor y pasar al siguiente PDF de la cola, que es como
+     se revisa una bandeja: uno tras otro sin volver a la lista. Si no quedan
+     PDF después de este, el visor se cierra. */
+  async function resolverDesdeVisor(estado) {
+    const actual = visor;
+    const cola = documentos.filter(esVisualizable);
+    const siguiente = cola[cola.findIndex(d => d.key === actual.key) + 1] ?? null;
+    if (await resolver(actual, estado)) setVisor(siguiente);
+  }
 
   return (
     <Layout
@@ -142,8 +166,8 @@ export default function Pendientes() {
                   <button
                     type="button"
                     className={styles.ticketArchivo}
-                    onClick={() => descargarArchivo(`${meta.base}/${doc.doc_id}/descargar`, doc.nombre_original)}
-                    title="Descargar para revisar"
+                    onClick={() => abrir(doc)}
+                    title={esVisualizable(doc) ? 'Ver el documento' : 'Descargar para revisar'}
                   >
                     <Formato mime={doc.tipo_mime} />
                     <span className={styles.ticketArchivoNombre}>{doc.nombre_original}</span>
@@ -161,6 +185,15 @@ export default function Pendientes() {
                 </div>
 
                 <div className={styles.ticketAcciones}>
+                  {esVisualizable(doc) && (
+                    <button
+                      type="button" className="btn-icono tono-acero"
+                      onClick={() => setVisor(doc)}
+                      disabled={ocupado} title="Ver" aria-label={`Ver ${doc.nombre_original}`}
+                    >
+                      <IconoOjo />
+                    </button>
+                  )}
                   <button
                     type="button" className="btn-icono tono-acero"
                     onClick={() => descargarArchivo(`${meta.base}/${doc.doc_id}/descargar`, doc.nombre_original)}
@@ -185,6 +218,33 @@ export default function Pendientes() {
             );
           })}
         </div>
+      )}
+
+      {visor && (
+        <VisorPDF
+          doc={visor}
+          url={`${TIPO_META[visor.tipo].base}/${visor.doc_id}/descargar`}
+          onCerrar={cerrarVisor}
+          acciones={
+            <>
+              <span className={styles.visorOrigen} title={visor.origen}>
+                {TIPO_META[visor.tipo].etiqueta} · {visor.origen}
+              </span>
+              <button
+                type="button" className="btn btn--sm btn--peligro"
+                onClick={() => resolverDesdeVisor('desaprobado')} disabled={procesando === visor.key}
+              >
+                <IconoCerrar tamano={14} /> Rechazar
+              </button>
+              <button
+                type="button" className="btn btn--sm btn--exito"
+                onClick={() => resolverDesdeVisor('aprobado')} disabled={procesando === visor.key}
+              >
+                <IconoCheck tamano={14} /> Aprobar
+              </button>
+            </>
+          }
+        />
       )}
     </Layout>
   );

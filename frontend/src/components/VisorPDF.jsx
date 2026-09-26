@@ -12,8 +12,11 @@ import styles from './VisorPDF.module.css';
  *                  Se usan `nombre_original` y `tipo_mime`.
  * @param url       Ruta del endpoint de descarga del documento.
  * @param onCerrar  Se invoca al cerrar el visor.
+ * @param acciones  (Opcional) botones propios de quien abre el visor, en la
+ *                  barra junto a Descargar. La bandeja «Por revisar» pone ahí
+ *                  Aprobar/Rechazar para decidir sin cerrar el documento.
  */
-export default function VisorPDF({ doc, url, onCerrar }) {
+export default function VisorPDF({ doc, url, onCerrar, acciones }) {
   const [blobUrl, setBlobUrl] = useState(null);
   const [error, setError]     = useState(null);
   const urlRef = useRef(null);
@@ -78,6 +81,7 @@ export default function VisorPDF({ doc, url, onCerrar }) {
             {doc.nombre_original}
           </span>
           <div className={styles.acciones}>
+            {acciones}
             {blobUrl && (
               <a
                 className={styles.btnBarra}

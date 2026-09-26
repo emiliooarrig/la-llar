@@ -151,7 +151,10 @@
 }
 
 @media (max-width: 480px) {
-  .barra { padding: 10px 12px; gap: 8px; }
+  /* Con acciones extra (Aprobar/Rechazar) no caben en una línea junto al
+     nombre: bajan a una segunda línea en vez de aplastarlo. */
+  .barra { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
+  .acciones { flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
   .nombre { font-size: 13px; }
   .btnBarra { padding: 7px 10px; }
   /* Sólo el icono: el nombre del archivo manda en una barra tan estrecha. */
