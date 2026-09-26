@@ -22,6 +22,9 @@ la-llar-sdd/
 .interface-design/
 # Pruebas locales (usan la BD con el seed, no van al repo)
 backend/tests/
+# Registro de lo que cargó scripts/pruebas/datos-prueba.js en ESTA base: ids
+# locales que solo sirven para revertir aquí.
+backend/scripts/pruebas/.manifiesto.json
 
 # Auditorías de seguridad: detallan hallazgos aún sin corregir y el repo es público
 AUDITORIA-SEGURIDAD-*.md
