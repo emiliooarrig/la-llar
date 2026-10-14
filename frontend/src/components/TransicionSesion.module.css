@@ -1,0 +1,112 @@
+/* Cortina de sesión. La hornilla se enciende al entrar y se apaga al
+   salir; el borde de corte es el mismo de la comanda del login y el pie.
+   El movimiento reducido lo resuelve base.css (duraciones a ~0). */
+.cortina {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;               /* por encima de modales y SweetAlert2 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--e6);
+  background: var(--color-blanco-hueso);
+  animation: aparecer 240ms ease-out both;
+}
+
+.mostrando { cursor: pointer; }
+.descubriendo { animation: desaparecer 360ms ease-in forwards; pointer-events: none; }
+
+.contenido {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* ── Hornilla ─────────────────────────────────────────────── */
+.hornilla {
+  position: relative;
+  width: 128px;
+  height: 128px;
+  display: grid;
+  place-items: center;
+  margin-bottom: var(--e6);
+  animation: asentar 420ms cubic-bezier(0.2, 0.8, 0.2, 1) 60ms both;
+}
+
+.aro {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);   /* el trazo arranca arriba */
+}
+
+.aroFondo {
+  fill: var(--color-blanco);
+  stroke: var(--color-gris-claro);
+  stroke-width: 4;
+}
+
+.aroFuego {
+  fill: none;
+  stroke: var(--color-naranja);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+}
+
+.entrada .aroFuego { stroke-dashoffset: 100; animation: encender 760ms cubic-bezier(0.4, 0, 0.2, 1) 140ms forwards; }
+.salida  .aroFuego { stroke-dashoffset: 0;   animation: apagar   700ms cubic-bezier(0.4, 0, 0.2, 1) 160ms forwards; }
+
+.logo {
+  position: relative;
+  width: 76px;
+  height: auto;
+}
+
+/* ── Texto ────────────────────────────────────────────────── */
+.etiqueta {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--texto-muted);
+  animation: subir 320ms ease-out 200ms both;
+}
+
+.saludo {
+  margin-top: var(--e1);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-texto);
+  animation: subir 320ms ease-out 280ms both;
+}
+
+.nombre { color: var(--color-naranja-oscuro); }
+
+.corte {
+  display: block;
+  width: 160px;
+  height: 2px;
+  margin-top: var(--e5);
+  background: repeating-linear-gradient(90deg, var(--color-gris) 0 7px, transparent 7px 15px);
+  transform-origin: center;
+  animation: extender 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 340ms both;
+}
+
+/* ── Keyframes ────────────────────────────────────────────── */
+@keyframes aparecer    { from { opacity: 0; } to { opacity: 1; } }
+@keyframes desaparecer { from { opacity: 1; } to { opacity: 0; } }
+@keyframes asentar     { from { opacity: 0; transform: scale(0.88); } to { opacity: 1; transform: scale(1); } }
+@keyframes encender    { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+@keyframes apagar      { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -100; } }
+@keyframes subir       { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes extender    { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (max-width: 420px) {
+  .hornilla { width: 112px; height: 112px; }
+  .logo { width: 66px; }
+  .saludo { font-size: 20px; }
+}

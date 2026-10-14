@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useRef } from 'react';
 import api from '../services/api';
+import TransicionSesion from '../components/TransicionSesion';
 
 const AuthContext = createContext(null);
 
@@ -27,9 +28,27 @@ export function AuthProvider({ children }) {
     setUsuario(null);
   }, []);
 
+  /* Animación de entrada/salida de sesión. `alCubrir` corre cuando la
+     cortina ya tapa la pantalla: ahí se navega o se limpia la sesión. */
+  const [transicion, setTransicion] = useState(null);
+  const contador = useRef(0);
+  const transicionar = useCallback((tipo, nombre, alCubrir) => {
+    contador.current += 1;
+    setTransicion({ id: contador.current, tipo, nombre, alCubrir });
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ usuario, login, logout }}>
+    <AuthContext.Provider value={{ usuario, login, logout, transicionar }}>
       {children}
+      {transicion && (
+        <TransicionSesion
+          key={transicion.id}
+          tipo={transicion.tipo}
+          nombre={transicion.nombre}
+          alCubrir={transicion.alCubrir}
+          alTerminar={() => setTransicion(null)}
+        />
+      )}
     </AuthContext.Provider>
   );
 }

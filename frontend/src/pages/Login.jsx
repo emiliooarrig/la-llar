@@ -11,7 +11,7 @@ const INTENTOS_MAX = 5;
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, transicionar } = useAuth();
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [errores, setErrores] = useState({});
@@ -40,12 +40,16 @@ export default function Login() {
     setFallo(null);
     try {
       const usuario = await login(form.email, form.password);
-      /* Sin diálogo de bienvenida: el panel que aparece ya es la confirmación,
-         y el aviso anterior retrasaba 1.4 s cada entrada del día. */
-      navigate(INICIO_POR_ROL[usuario.rol] || '/', { replace: true });
+      /* El panel se monta detrás de la cortina, así que carga sus datos
+         mientras se ve el saludo. Clic o Escape lo adelantan. */
+      transicionar('entrada', usuario.nombre, () =>
+        navigate(INICIO_POR_ROL[usuario.rol] || '/', { replace: true })
+      );
     } catch (error) {
       const datos = error.response?.data;
       const mensaje = datos?.error || 'No se pudo iniciar sesión. Intenta de nuevo.';
+
+      setCargando(false);
 
       if (error.response?.status === 429) {
         setFallo({ mensaje, detalle: null });
@@ -63,8 +67,6 @@ export default function Login() {
             : 'Este fue tu último intento: el acceso queda bloqueado 15 minutos.'
           : null,
       });
-    } finally {
-      setCargando(false);
     }
   }
 

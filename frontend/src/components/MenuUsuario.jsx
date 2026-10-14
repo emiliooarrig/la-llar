@@ -31,7 +31,7 @@ function validar({ actual, nueva, confirmar: conf }) {
 }
 
 export default function MenuUsuario() {
-  const { usuario, logout } = useAuth();
+  const { usuario, logout, transicionar } = useAuth();
   const navigate = useNavigate();
   const { densidad, setDensidad } = useDensidad();
 
@@ -66,8 +66,10 @@ export default function MenuUsuario() {
   async function salir() {
     setAbierto(false);
     if (await confirmar({ titulo: '¿Cerrar sesión?', texto: 'Se cerrará tu sesión en este navegador.', confirmar: 'Cerrar sesión' })) {
-      logout();
-      navigate('/login', { replace: true });
+      transicionar('salida', usuario?.nombre, () => {
+        logout();
+        navigate('/login', { replace: true });
+      });
     }
   }
 
