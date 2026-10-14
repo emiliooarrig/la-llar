@@ -15,6 +15,12 @@
 .ejemploTexto { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .ejemploTitulo { font-size: 13.5px; font-weight: 600; color: var(--color-texto); }
 .ejemploPista { font-size: 12.5px; color: var(--color-texto-suave); }
+.ejemploAcciones { display: flex; gap: var(--e2); flex-shrink: 0; }
+@media (max-width: 620px) {
+  .ejemplo { flex-wrap: wrap; }
+  .ejemploAcciones { width: 100%; }
+  .ejemploAcciones > * { flex: 1; justify-content: center; }
+}
 
 /* Formulario de subida: dos archivos y la empresa a la que se factura. */
 .campos { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e4); }

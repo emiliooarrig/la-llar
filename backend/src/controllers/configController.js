@@ -6,111 +6,116 @@ const { UPLOADS_DIR, borrarArchivos } = require('../middleware/upload');
 const prisma = new PrismaClient();
 
 const CLAVE_EJEMPLO = 'ejemplo_factura';
+const CLAVE_EJEMPLO_VALE = 'ejemplo_vale';
 
-/* Ejemplo de factura (spec 001 HU-7).
+/* Ejemplos publicados: PDFs que el administrador sube para enseñar cómo
+ * tiene que verse algo.
  *
- * Un PDF que el administrador publica para enseñar a los proveedores cómo
- * tiene que verse lo que suben. Es plantilla, no documento de nadie: no
- * pertenece a ningún proveedor ni entra en ningún flujo de aprobación, y por
- * eso no vive en `documentos_proveedor` sino en `configuracion`.
+ *   · Ejemplo de factura (spec 001 HU-7): lo consultan los proveedores.
+ *   · Ejemplo de vale azul: lo consultan los gerentes desde el panel «Cómo
+ *     funcionan los vales azules». Es el papel físico anotado, para que se
+ *     vea qué secciones se llenan y cómo.
  *
- * Se guarda como cualquier otra subida —UUID en disco, nombre original en la
- * base— y reemplazarlo borra el anterior: tener tres ejemplos antiguos
+ * Son plantilla, no documento de nadie: no pertenecen a ningún proveedor ni
+ * a ningún vale ni entran en ningún flujo de aprobación, y por eso no viven
+ * en `documentos_proveedor` ni en `vales` sino en `configuracion`.
+ *
+ * Se guardan como cualquier otra subida —UUID en disco, nombre original en
+ * la base— y reemplazarlos borra el anterior: tener tres ejemplos antiguos
  * ocupando espacio es la forma de que algún día se sirva el equivocado.
+ *
+ * Los dos se comportan igual; lo único que cambia es la clave y el texto
+ * de los errores, así que salen de la misma fábrica.
  */
-
-async function leerEjemplo() {
-  const fila = await prisma.configuracion.findUnique({ where: { clave: CLAVE_EJEMPLO } });
-  return fila?.valor ?? null;
-}
-
-/* ── GET /api/config/ejemplo-factura/info ────────────────────────────── */
-// La pantalla del proveedor pregunta primero: sin ejemplo publicado no pinta
-// el bloque, en vez de ofrecer una descarga que daría 404.
-async function infoEjemploFactura(_req, res) {
-  try {
-    const ejemplo = await leerEjemplo();
-    if (!ejemplo) return res.json({ publicado: false });
-
-    res.json({
-      publicado: true,
-      nombre_original: ejemplo.nombre_original,
-      actualizado_en: ejemplo.actualizado_en,
-    });
-  } catch (e) {
-    console.error('Error al consultar el ejemplo de factura:', e);
-    res.status(500).json({ error: 'Error interno del servidor' });
+function crearEjemplo(clave, nombre) {
+  async function leer() {
+    const fila = await prisma.configuracion.findUnique({ where: { clave } });
+    return fila?.valor ?? null;
   }
-}
 
-/* ── GET /api/config/ejemplo-factura ─────────────────────────────────── */
-async function descargarEjemploFactura(req, res) {
-  try {
-    const ejemplo = await leerEjemplo();
-    if (!ejemplo) {
-      return res.status(404).json({ error: 'Todavía no hay un ejemplo de factura publicado.' });
-    }
+  /* GET …/info — la pantalla pregunta primero: sin ejemplo publicado no
+   * pinta el bloque, en vez de ofrecer una descarga que daría 404. */
+  async function info(_req, res) {
+    try {
+      const ejemplo = await leer();
+      if (!ejemplo) return res.json({ publicado: false });
 
-    const ruta = path.join(UPLOADS_DIR, ejemplo.ruta_archivo);
-    if (!fs.existsSync(ruta)) {
-      return res.status(404).json({ error: 'El archivo del ejemplo no está en el servidor.' });
+      res.json({
+        publicado: true,
+        nombre_original: ejemplo.nombre_original,
+        actualizado_en: ejemplo.actualizado_en,
+      });
+    } catch (e) {
+      console.error(`Error al consultar el ejemplo de ${nombre}:`, e);
+      res.status(500).json({ error: 'Error interno del servidor' });
     }
-
-    if (req.query.inline === '1') {
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('X-Content-Type-Options', 'nosniff');
-      return res.sendFile(ruta);
-    }
-    return res.download(ruta, ejemplo.nombre_original);
-  } catch (e) {
-    console.error('Error al descargar el ejemplo de factura:', e);
-    res.status(500).json({ error: 'Error al descargar el archivo' });
   }
-}
 
-/* ── PUT /api/config/ejemplo-factura (administrador) ─────────────────── */
-async function publicarEjemploFactura(req, res) {
-  if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo' });
+  /* GET … — `inline=1` lo entrega para el visor; sin el parámetro, se
+   * descarga. */
+  async function descargar(req, res) {
+    try {
+      const ejemplo = await leer();
+      if (!ejemplo) {
+        return res.status(404).json({ error: `Todavía no hay un ejemplo de ${nombre} publicado.` });
+      }
 
-  try {
-    const anterior = await leerEjemplo();
+      const ruta = path.join(UPLOADS_DIR, ejemplo.ruta_archivo);
+      if (!fs.existsSync(ruta)) {
+        return res.status(404).json({ error: 'El archivo del ejemplo no está en el servidor.' });
+      }
 
-    await prisma.configuracion.upsert({
-      where: { clave: CLAVE_EJEMPLO },
-      create: {
-        clave: CLAVE_EJEMPLO,
-        valor: {
-          ruta_archivo: req.file.filename,
-          nombre_original: req.file.originalname,
-          actualizado_en: new Date().toISOString(),
-        },
-        actualizado_por: req.usuario.id,
-      },
-      update: {
-        valor: {
-          ruta_archivo: req.file.filename,
-          nombre_original: req.file.originalname,
-          actualizado_en: new Date().toISOString(),
-        },
-        actualizado_por: req.usuario.id,
-      },
-    });
-
-    // El anterior se borra DESPUÉS de que el nuevo esté guardado: si el
-    // upsert falla, el ejemplo viejo sigue publicado en vez de desaparecer.
-    if (anterior?.ruta_archivo) await borrarArchivos([anterior.ruta_archivo]);
-
-    res.json({
-      publicado: true,
-      nombre_original: req.file.originalname,
-      actualizado_en: new Date().toISOString(),
-    });
-  } catch (e) {
-    await borrarArchivos([req.file.filename]);
-    console.error('Error al publicar el ejemplo de factura:', e);
-    res.status(500).json({ error: 'Error interno del servidor' });
+      if (req.query.inline === '1') {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        return res.sendFile(ruta);
+      }
+      return res.download(ruta, ejemplo.nombre_original);
+    } catch (e) {
+      console.error(`Error al descargar el ejemplo de ${nombre}:`, e);
+      res.status(500).json({ error: 'Error al descargar el archivo' });
+    }
   }
+
+  /* PUT … (administrador) */
+  async function publicar(req, res) {
+    if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo' });
+
+    try {
+      const anterior = await leer();
+      const valor = {
+        ruta_archivo: req.file.filename,
+        nombre_original: req.file.originalname,
+        actualizado_en: new Date().toISOString(),
+      };
+
+      await prisma.configuracion.upsert({
+        where: { clave },
+        create: { clave, valor, actualizado_por: req.usuario.id },
+        update: { valor, actualizado_por: req.usuario.id },
+      });
+
+      // El anterior se borra DESPUÉS de que el nuevo esté guardado: si el
+      // upsert falla, el ejemplo viejo sigue publicado en vez de desaparecer.
+      if (anterior?.ruta_archivo) await borrarArchivos([anterior.ruta_archivo]);
+
+      res.json({
+        publicado: true,
+        nombre_original: valor.nombre_original,
+        actualizado_en: valor.actualizado_en,
+      });
+    } catch (e) {
+      await borrarArchivos([req.file.filename]);
+      console.error(`Error al publicar el ejemplo de ${nombre}:`, e);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  }
+
+  return { info, descargar, publicar };
 }
+
+const ejemploFactura = crearEjemplo(CLAVE_EJEMPLO, 'factura');
+const ejemploVale = crearEjemplo(CLAVE_EJEMPLO_VALE, 'vale');
 
 /* ── Reglas de asistencia (spec 004) ───────────────────────────────────
  * GET  /api/config/asistencia  — administrador y gerente (el gerente las
@@ -169,6 +174,13 @@ async function guardarAsistencia(req, res) {
 }
 
 module.exports = {
-  infoEjemploFactura, descargarEjemploFactura, publicarEjemploFactura, CLAVE_EJEMPLO,
+  infoEjemploFactura: ejemploFactura.info,
+  descargarEjemploFactura: ejemploFactura.descargar,
+  publicarEjemploFactura: ejemploFactura.publicar,
+  CLAVE_EJEMPLO,
+  infoEjemploVale: ejemploVale.info,
+  descargarEjemploVale: ejemploVale.descargar,
+  publicarEjemploVale: ejemploVale.publicar,
+  CLAVE_EJEMPLO_VALE,
   leerAsistencia, guardarAsistencia,
 };

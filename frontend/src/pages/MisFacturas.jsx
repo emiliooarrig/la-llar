@@ -5,8 +5,9 @@ import Modal from '../components/Modal';
 import Campo from '../components/Campo';
 import PanelFacturas from '../components/PanelFacturas';
 import SelectorEmpresa from '../components/SelectorEmpresa';
+import VisorPDF from '../components/VisorPDF';
 import {
-  IconoSubir, IconoAlerta, IconoInfo, IconoDocumentos, IconoDescargar, IconoCheck,
+  IconoSubir, IconoAlerta, IconoInfo, IconoDocumentos, IconoDescargar, IconoCheck, IconoOjo,
 } from '../components/Iconos';
 import { descargarArchivo } from '../lib/descargas';
 import { toast, avisoError } from '../lib/alertas';
@@ -30,6 +31,7 @@ export default function MisFacturas() {
   const [bloqueoComplemento, setBloqueoComplemento] = useState(null);
   const [alertas, setAlertas] = useState([]);
   const [ejemplo, setEjemplo] = useState(null);
+  const [verEjemplo, setVerEjemplo] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
 
@@ -200,14 +202,27 @@ export default function MisFacturas() {
               Así debe verse lo que subes. Documento de referencia, no hay que llenarlo.
             </span>
           </span>
-          <button
-            type="button" className="btn btn--neutro btn--sm"
-            onClick={() => descargarArchivo('/config/ejemplo-factura', ejemplo.nombre_original)}
-          >
-            <IconoDescargar /> Descargar ejemplo
-          </button>
+          <span className={styles.ejemploAcciones}>
+            <button type="button" className="btn btn--neutro btn--sm" onClick={() => setVerEjemplo(true)}>
+              <IconoOjo /> Ver ejemplo
+            </button>
+            <button
+              type="button" className="btn btn--neutro btn--sm"
+              onClick={() => descargarArchivo('/config/ejemplo-factura', ejemplo.nombre_original)}
+            >
+              <IconoDescargar /> Descargar
+            </button>
+          </span>
         </div>
       )}
+
+      {/* Vista previa en el navegador: consultar el ejemplo no debería dejar
+          una copia más en la carpeta de descargas del proveedor. */}
+      <VisorPDF
+        doc={verEjemplo ? ejemplo : null}
+        url="/config/ejemplo-factura?inline=1"
+        onCerrar={() => setVerEjemplo(false)}
+      />
 
       <PanelFacturas
         facturas={facturas}

@@ -13,10 +13,30 @@
   margin-bottom: var(--e5);
 }
 .panelIcono { color: var(--color-acero, #1565C0); flex-shrink: 0; display: grid; place-items: center; }
-.panelCuerpo { display: flex; flex-direction: column; gap: var(--e2); min-width: 0; }
+.panelCuerpo { display: flex; flex-direction: column; gap: var(--e2); min-width: 0; flex: 1; }
 .panelTitulo { font-size: 13.5px; font-weight: 600; color: var(--color-texto); }
 .panelLista { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 .panelLista li { font-size: 13px; color: var(--color-texto-suave); line-height: 1.5; }
+
+/* Ejemplo del vale físico llenado, dentro del panel: complementa las reglas
+   con el papel mismo. Borde punteado, como el ejemplo de factura del
+   proveedor, para que se lea como material de apoyo y no como un vale. */
+.ejemplo {
+  display: flex; align-items: center; gap: var(--e3);
+  border: 1px dashed rgba(21, 101, 192, 0.35);
+  border-radius: var(--radio); padding: var(--e3) var(--e4);
+  background: var(--color-blanco); margin-top: var(--e2);
+}
+.ejemploIcono { color: var(--color-acero, #1565C0); display: grid; place-items: center; flex-shrink: 0; }
+.ejemploTexto { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.ejemploTitulo { font-size: 13px; font-weight: 600; color: var(--color-texto); }
+.ejemploPista { font-size: 12.5px; color: var(--color-texto-suave); }
+.ejemploAcciones { display: flex; gap: var(--e2); flex-shrink: 0; }
+@media (max-width: 620px) {
+  .ejemplo { flex-wrap: wrap; }
+  .ejemploAcciones { width: 100%; }
+  .ejemploAcciones > * { flex: 1; justify-content: center; }
+}
 
 /* Cifras del autorizador: cuánto hay por resolver y por cuánto dinero. */
 .cifras { display: flex; flex-wrap: wrap; gap: var(--e6); margin-bottom: var(--e5); }

@@ -11,7 +11,7 @@ import VisorPDF from '../components/VisorPDF';
 import SelectorEmpresa from '../components/SelectorEmpresa';
 import {
   IconoSubir, IconoOjo, IconoDescargar, IconoCheck, IconoCerrar,
-  IconoAlerta, IconoInfo, IconoBasura,
+  IconoAlerta, IconoInfo, IconoBasura, IconoDocumentos,
 } from '../components/Iconos';
 import { useFiltrosURL } from '../hooks/useFiltrosURL';
 import { formatFecha, formatFechaHora, normalizar } from '../lib/formato';
@@ -42,6 +42,7 @@ export default function Vales() {
   const { usuario } = useAuth();
   const esAdmin = usuario?.rol === 'administrador';
   const inputRef = useRef(null);
+  const inputEjemploRef = useRef(null);
 
   const { filtros, setFiltro, limpiar, hayFiltros, clave } = useFiltrosURL(FILTROS_BASE);
 
@@ -59,7 +60,11 @@ export default function Vales() {
   const [guardando, setGuardando] = useState(false);
   const [visor, setVisor] = useState(null);
 
-  useEffect(() => { cargar(); }, []);
+  const [ejemplo, setEjemplo] = useState(null);   // el ejemplo publicado, o null
+  const [verEjemplo, setVerEjemplo] = useState(false);
+  const [publicandoEjemplo, setPublicandoEjemplo] = useState(false);
+
+  useEffect(() => { cargar(); cargarEjemplo(); }, []);
 
   async function cargar() {
     setCargando(true);
@@ -77,6 +82,46 @@ export default function Vales() {
       setError('No se pudieron cargar los vales. Revisa tu conexión.');
     } finally {
       setCargando(false);
+    }
+  }
+
+  /* El ejemplo es material de apoyo: si no hay o falla la consulta, la
+     página sigue sirviendo sin él. Va aparte de `cargar` porque no cambia
+     al subir un vale. */
+  async function cargarEjemplo() {
+    try {
+      const { data } = await api.get('/config/ejemplo-vale/info');
+      setEjemplo(data.publicado ? data : null);
+    } catch {
+      setEjemplo(null);
+    }
+  }
+
+  /* Publicar reemplaza: solo importa el ejemplo vigente (mismo criterio que
+     el ejemplo de factura). */
+  async function publicarEjemplo(e) {
+    const archivo = e.target.files?.[0];
+    e.target.value = '';
+    if (!archivo) return;
+
+    if (!archivo.name.toLowerCase().endsWith('.pdf')) {
+      await avisoError('El ejemplo debe ser un PDF.', 'Formato no permitido');
+      return;
+    }
+
+    setPublicandoEjemplo(true);
+    try {
+      const datos = new FormData();
+      datos.append('archivo', archivo);
+      const { data } = await api.put('/config/ejemplo-vale', datos, {
+        headers: { 'Content-Type': undefined },
+      });
+      setEjemplo(data);
+      toast('Ejemplo publicado: los gerentes ya lo ven');
+    } catch (err) {
+      await avisoError(err.response?.data?.error || 'No se pudo publicar el ejemplo.');
+    } finally {
+      setPublicandoEjemplo(false);
     }
   }
 
@@ -364,8 +409,56 @@ export default function Vales() {
           <ul className={styles.panelLista}>
             {(reglas ?? []).map(r => <li key={r}>{r}</li>)}
           </ul>
+
+          {/* El vale físico anotado: qué secciones del papel se llenan y
+              cómo. El gerente solo lo ve si hay uno publicado; el
+              administrador ve el bloque siempre, para poder publicarlo. */}
+          {(ejemplo || esAdmin) && (
+            <div className={styles.ejemplo}>
+              <span className={styles.ejemploIcono}><IconoDocumentos tamano={20} /></span>
+              <span className={styles.ejemploTexto}>
+                <span className={styles.ejemploTitulo}>Ejemplo de vale llenado</span>
+                <span className={styles.ejemploPista}>
+                  {!ejemplo
+                    ? 'Todavía no hay ejemplo publicado. Mientras no lo haya, los gerentes no ven esta guía.'
+                    : esAdmin
+                      ? `Lo que ven los gerentes. Actualizado el ${formatFecha(ejemplo.actualizado_en)}.`
+                      : 'Qué secciones del vale físico se llenan y cómo. Revísalo antes de llenar el tuyo.'}
+                </span>
+              </span>
+              <span className={styles.ejemploAcciones}>
+                {ejemplo && (
+                  <button type="button" className="btn btn--neutro btn--sm" onClick={() => setVerEjemplo(true)}>
+                    <IconoOjo /> Ver ejemplo
+                  </button>
+                )}
+                {esAdmin && (
+                  <>
+                    <input
+                      ref={inputEjemploRef} type="file" accept=".pdf,application/pdf"
+                      style={{ display: 'none' }} onChange={publicarEjemplo}
+                    />
+                    <button
+                      type="button" className="btn btn--neutro btn--sm"
+                      onClick={() => inputEjemploRef.current?.click()} disabled={publicandoEjemplo}
+                    >
+                      {publicandoEjemplo
+                        ? <><span className="spinner" /> Publicando…</>
+                        : <><IconoSubir /> {ejemplo ? 'Reemplazar' : 'Publicar ejemplo'}</>}
+                    </button>
+                  </>
+                )}
+              </span>
+            </div>
+          )}
         </div>
       </div>
+
+      <VisorPDF
+        doc={verEjemplo ? ejemplo : null}
+        url="/config/ejemplo-vale?inline=1"
+        onCerrar={() => setVerEjemplo(false)}
+      />
 
       {/* El bloqueo se explica, no solo se aplica: el solicitante tiene que
           saber qué vale lo frena y qué hacer con él. */}
