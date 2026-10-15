@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
-import { IconoChevron, IconoDescargar, IconoArchivar, IconoAlerta, IconoInfo } from './Iconos';
+import { IconoChevron, IconoDescargar, IconoArchivar, IconoAlerta, IconoInfo, IconoOjo } from './Iconos';
+import VisorPDF from './VisorPDF';
 import { descargarArchivo } from '../lib/descargas';
 import { confirmar, toast, avisoError } from '../lib/alertas';
 import { ETIQUETA_EVAL, NOMBRE_DIA_LARGO, formatearMinutos, fechaLegible } from '../lib/asistencia';
@@ -16,8 +17,9 @@ import styles from './ResumenSemanal.module.css';
  * de arranque. Aquí solo se navega de 7 en 7 días a partir del inicio que
  * devuelve.
  *
- * Tres salidas: el PDF para firma, el mismo PDF archivado en el Histórico
- * con folio, y el lote de toda la unidad para imprimir de una vez.
+ * Tres salidas: el PDF para firma (se abre en el visor, desde donde se
+ * imprime o descarga), el mismo PDF archivado en el Histórico con folio, y
+ * el lote de toda la unidad para imprimir de una vez.
  */
 
 const pad = n => String(n).padStart(2, '0');
@@ -45,7 +47,8 @@ export default function ResumenSemanal({ empleado, sucursalId, mes, version, esA
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(true);
-  const [ocupado, setOcupado] = useState(null); // 'pdf' | 'historico' | 'lote'
+  const [ocupado, setOcupado] = useState(null); // 'historico' | 'lote'
+  const [visor, setVisor] = useState(null);     // { doc, url } del PDF abierto
 
   useEffect(() => {
     let vivo = true;
@@ -60,13 +63,11 @@ export default function ResumenSemanal({ empleado, sucursalId, mes, version, esA
 
   const inicio = datos?.semana.inicio;
 
-  async function imprimir() {
-    setOcupado('pdf');
-    await descargarArchivo(
-      `/asistencias/resumen?empleado_id=${empleado.id}&semana=${inicio}&formato=pdf`,
-      `Resumen ${empleado.nombre} ${inicio}.pdf`,
-    );
-    setOcupado(null);
+  function verPDF() {
+    setVisor({
+      doc: { nombre_original: `Resumen ${empleado.nombre} ${inicio}.pdf` },
+      url: `/asistencias/resumen?empleado_id=${empleado.id}&semana=${inicio}&formato=pdf`,
+    });
   }
 
   async function imprimirLote() {
@@ -131,8 +132,9 @@ export default function ResumenSemanal({ empleado, sucursalId, mes, version, esA
             title="Guardar este PDF con folio en el Histórico">
             {ocupado === 'historico' ? <span className="spinner" /> : <IconoArchivar tamano={15} />} Mandar al Histórico
           </button>
-          <button type="button" className="btn btn--primario btn--sm" onClick={imprimir} disabled={!datos || Boolean(ocupado)}>
-            {ocupado === 'pdf' ? <span className="spinner" /> : <IconoDescargar tamano={15} />} Imprimir PDF (para firma)
+          <button type="button" className="btn btn--primario btn--sm" onClick={verPDF} disabled={!datos || Boolean(ocupado)}
+            title="Abre el PDF para revisarlo, imprimirlo o descargarlo">
+            <IconoOjo tamano={15} /> Ver PDF para firma
           </button>
         </div>
       </div>
@@ -149,7 +151,7 @@ export default function ResumenSemanal({ empleado, sucursalId, mes, version, esA
               <span>
                 <strong>Acta por retardos.</strong> Esta semana entra en {datos.actas.length === 1 ? 'un acta' : `${datos.actas.length} actas`} de
                 {' '}{datos.reglas.retardos_por_acta} retardos ({datos.actas.map(a => a.retardos.map(r => fechaLegible(r.fecha)).join(', ')).join(' / ')}).
-                El PDF del acta se descarga en la sección de puntualidad.
+                El PDF del acta se abre en la sección de puntualidad.
               </span>
             </div>
           )}
@@ -212,6 +214,8 @@ export default function ResumenSemanal({ empleado, sucursalId, mes, version, esA
           </p>
         </div>
       )}
+
+      <VisorPDF doc={visor?.doc} url={visor?.url} onCerrar={() => setVisor(null)} />
     </section>
   );
 }

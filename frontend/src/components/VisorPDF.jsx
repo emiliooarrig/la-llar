@@ -37,8 +37,13 @@ export default function VisorPDF({ doc, url, onCerrar, acciones }) {
         const objeto = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
         urlRef.current = objeto;
         setBlobUrl(objeto);
-      } catch {
-        if (!cancelado) setError('No se pudo abrir el documento.');
+      } catch (err) {
+        // Con responseType blob, el JSON de error del backend llega como Blob.
+        let mensaje = 'No se pudo abrir el documento.';
+        if (err.response?.data instanceof Blob) {
+          try { mensaje = JSON.parse(await err.response.data.text()).error || mensaje; } catch { /* noop */ }
+        }
+        if (!cancelado) setError(mensaje);
       }
     })();
 

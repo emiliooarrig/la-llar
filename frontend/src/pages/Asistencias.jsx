@@ -9,8 +9,9 @@ import EstadoDato from '../components/EstadoDato';
 import EditorHorario from '../components/EditorHorario';
 import ReglasAsistencia from '../components/ReglasAsistencia';
 import ResumenSemanal from '../components/ResumenSemanal';
+import VisorPDF from '../components/VisorPDF';
 import {
-  IconoChevron, IconoDescargar, IconoCandado, IconoCalendario, IconoAlerta, IconoInfo, IconoLapiz,
+  IconoChevron, IconoDescargar, IconoCandado, IconoCalendario, IconoAlerta, IconoInfo, IconoLapiz, IconoOjo,
 } from '../components/Iconos';
 import { useFiltrosURL } from '../hooks/useFiltrosURL';
 import { confirmar, toast, avisoError } from '../lib/alertas';
@@ -154,7 +155,7 @@ export default function Asistencias() {
   const [extra, setExtra] = useState({ minutos: '', nota: '' });
   const [errorExtra, setErrorExtra] = useState(null);
   const [guardandoExtra, setGuardandoExtra] = useState(false);
-  const [descargandoActa, setDescargandoActa] = useState(null);
+  const [visorActa, setVisorActa] = useState(null); // { doc, url } del acta abierta
   const recargarEvaluacion = () => setVersionEval(v => v + 1);
 
   /* ── Carga base ─────────────────────────────────────────── */
@@ -405,32 +406,13 @@ export default function Asistencias() {
   }
 
   /* ── Acta en PDF ────────────────────────────────────────── */
-  async function descargarActa(acta) {
-    const clave = `${acta.periodo.clave}-${acta.numero}`;
-    setDescargandoActa(clave);
-    try {
-      const res = await api.get('/asistencias/acta', {
-        params: { empleado_id: empleadoSel, fecha: acta.periodo.desde, numero: acta.numero },
-        responseType: 'blob',
-      });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement('a');
-      a.href = url;
-      const match = (res.headers['content-disposition'] || '').match(/filename="?([^"]+)"?/);
-      a.download = match ? match[1] : `acta_${clave}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      let mensaje = 'No se pudo generar el acta.';
-      if (err.response?.data instanceof Blob) {
-        try { mensaje = JSON.parse(await err.response.data.text()).error || mensaje; } catch { /* noop */ }
-      }
-      await avisoError(mensaje);
-    } finally {
-      setDescargandoActa(null);
-    }
+  // Se abre en el visor: se revisa antes de imprimirla para firma, y la
+  // descarga queda en la barra del visor.
+  function verActa(acta) {
+    setVisorActa({
+      doc: { nombre_original: `Acta ${empleadoActual?.nombre ?? ''} ${acta.periodo.clave}-${acta.numero}.pdf` },
+      url: `/asistencias/acta?empleado_id=${empleadoSel}&fecha=${acta.periodo.desde}&numero=${acta.numero}`,
+    });
   }
 
   /* ── Reporte PDF ────────────────────────────────────────── */
@@ -802,11 +784,11 @@ export default function Asistencias() {
                       </div>
                       <button
                         type="button" className="btn btn--neutro btn--sm"
-                        onClick={() => descargarActa(acta)} disabled={descargandoActa === clave}
+                        onClick={() => verActa(acta)}
                         title="PDF para firmar por el empleado y el personal administrativo"
                       >
-                        {descargandoActa === clave ? <span className="spinner" /> : <IconoDescargar tamano={15} />}
-                        Acta PDF
+                        <IconoOjo tamano={15} />
+                        Ver acta
                       </button>
                     </div>
                     <ol className={styles.actaRetardos}>
@@ -1146,6 +1128,8 @@ export default function Asistencias() {
           </form>
         </Modal>
       )}
+
+      <VisorPDF doc={visorActa?.doc} url={visorActa?.url} onCerrar={() => setVisorActa(null)} />
     </Layout>
   );
 }
