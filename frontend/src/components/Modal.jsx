@@ -17,6 +17,7 @@ export default function Modal({
   children,
   pie,
   bloqueado = false,   // impide cerrar mientras se guarda
+  encima = false,      // por encima del visor de PDF (que tapa a los modales)
 }) {
   const cajaRef = useRef(null);
   const previoRef = useRef(null);
@@ -68,7 +69,7 @@ export default function Modal({
 
   return (
     <div
-      className="overlay"
+      className={`overlay${encima ? ' overlay--encima' : ''}`}
       onMouseDown={e => { if (e.target === e.currentTarget && !bloqueado) onCerrar?.(); }}
     >
       <div

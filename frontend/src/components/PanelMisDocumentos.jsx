@@ -4,6 +4,7 @@ import Layout from './Layout';
 import TablaDatos from './TablaDatos';
 import Insignia, { Formato } from './Insignia';
 import VisorPDF, { esVisualizable } from './VisorPDF';
+import { ModalObservaciones, BotonObservaciones, NombreConMotivo } from './ObservacionesDocumento';
 import { IconoSubir, IconoDescargar, IconoOjo, IconoAlerta, IconoCheck, IconoInfo } from './Iconos';
 import { formatFecha } from '../lib/formato';
 import { descargarArchivo } from '../lib/descargas';
@@ -27,6 +28,7 @@ export default function PanelMisDocumentos({ recurso }) {
   const [error, setError] = useState(null);
   const [subiendo, setSubiendo] = useState(false);
   const [docVisor, setDocVisor] = useState(null);
+  const [verObs, setVerObs] = useState(null);   // documento con el historial abierto
 
   useEffect(() => { cargar(); }, []);
 
@@ -92,7 +94,7 @@ export default function PanelMisDocumentos({ recurso }) {
       render: d => (
         <span className={styles.archivo}>
           <Formato mime={d.tipo_mime} />
-          <span className="texto-cortado" title={d.nombre_original}>{d.nombre_original}</span>
+          <NombreConMotivo doc={d} />
         </span>
       ),
     },
@@ -100,7 +102,12 @@ export default function PanelMisDocumentos({ recurso }) {
       clave: 'estado',
       titulo: 'Estado',
       orden: d => d.estado,
-      render: d => <Insignia estado={d.estado}>{ETIQUETA_ESTADO[d.estado]}</Insignia>,
+      render: d => (
+        <>
+          <Insignia estado={d.estado}>{ETIQUETA_ESTADO[d.estado]}</Insignia>
+          <BotonObservaciones doc={d} onAbrir={setVerObs} />
+        </>
+      ),
     },
     {
       clave: 'creado_en',
@@ -173,7 +180,7 @@ export default function PanelMisDocumentos({ recurso }) {
           {resumen.aprobado > 0 && resumen.desaprobado > 0 && ' · '}
           {resumen.desaprobado > 0 && (
             <span className={styles.rechazados}>
-              <IconoAlerta tamano={13} /> <strong>{resumen.desaprobado}</strong> rechazado{resumen.desaprobado === 1 ? '' : 's'}: vuelve a subirlos corregidos
+              <IconoAlerta tamano={13} /> <strong>{resumen.desaprobado}</strong> rechazado{resumen.desaprobado === 1 ? '' : 's'}: revisa el motivo y vuelve a subirlos corregidos
             </span>
           )}
         </p>
@@ -203,6 +210,8 @@ export default function PanelMisDocumentos({ recurso }) {
           onCerrar={() => setDocVisor(null)}
         />
       )}
+
+      {verObs && <ModalObservaciones doc={verObs} onCerrar={() => setVerObs(null)} />}
     </Layout>
   );
 }

@@ -2,14 +2,22 @@ const { PrismaClient } = require('@prisma/client');
 const path = require('path');
 const fs = require('fs');
 const { UPLOADS_DIR } = require('../middleware/upload');
+const { leerObservacion, conAutores } = require('../lib/observacionesDocumento');
 
 const prisma = new PrismaClient();
 
 const INCLUDE_DOCS = {
   documentos_proveedor: {
     orderBy: { creado_en: 'desc' },
+    include: { observaciones: { orderBy: { creado_en: 'desc' } } },
   },
 };
+
+/* Quien subió el documento lee las observaciones (sobre todo el motivo de
+ * un rechazo) junto a su archivo: se entregan con el nombre del autor. */
+async function conObservaciones(proveedor) {
+  return { ...proveedor, documentos_proveedor: await conAutores(prisma, proveedor.documentos_proveedor) };
+}
 
 // Resumen ligero para las tarjetas del catálogo: conteo total + estados
 // de cada documento (para derivar los pendientes en el frontend).
@@ -63,7 +71,7 @@ async function listar(req, res) {
       include: INCLUDE_DOCS,
     });
     if (!proveedor) return res.status(404).json({ error: 'Proveedor no encontrado' });
-    res.json(proveedor);
+    res.json(await conObservaciones(proveedor));
   } catch (e) {
     console.error('Error al listar proveedores:', e);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -84,7 +92,7 @@ async function obtener(req, res) {
       include: INCLUDE_DOCS,
     });
     if (!proveedor) return res.status(404).json({ error: 'Proveedor no encontrado' });
-    res.json(proveedor);
+    res.json(await conObservaciones(proveedor));
   } catch (e) {
     console.error('Error al obtener proveedor:', e);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -173,14 +181,29 @@ async function actualizarEstado(req, res) {
     return res.status(400).json({ error: `Estado inválido. Valores permitidos: ${ESTADOS_VALIDOS.join(', ')}` });
   }
 
+  // Rechazar exige motivo (mismo criterio que facturas): quien subió el
+  // archivo lo lee para saber qué corregir.
+  const { observacion, error } = leerObservacion(req.body, estado);
+  if (error) return res.status(400).json({ error });
+
   try {
-    const doc = await prisma.documentos_proveedor.update({
-      where: { id: docId },
-      data: { estado },
+    const doc = await prisma.$transaction(async (tx) => {
+      if (observacion) {
+        await tx.observaciones_doc_proveedor.create({
+          data: { documento_id: docId, texto: observacion, autor_id: req.usuario.id },
+        });
+      }
+      return tx.documentos_proveedor.update({
+        where: { id: docId },
+        data: { estado },
+        include: { observaciones: { orderBy: { creado_en: 'desc' } } },
+      });
     });
-    res.json(doc);
+    const [conAutor] = await conAutores(prisma, [doc]);
+    res.json(conAutor);
   } catch (e) {
-    if (e.code === 'P2025') return res.status(404).json({ error: 'Documento no encontrado' });
+    // P2003: la observación apunta a un documento que no existe.
+    if (e.code === 'P2025' || e.code === 'P2003') return res.status(404).json({ error: 'Documento no encontrado' });
     console.error('Error al actualizar estado:', e);
     res.status(500).json({ error: 'Error interno del servidor' });
   }

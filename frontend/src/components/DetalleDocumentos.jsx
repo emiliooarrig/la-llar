@@ -7,6 +7,7 @@ import BarraFiltros from './BarraFiltros';
 import MenuAcciones from './MenuAcciones';
 import Insignia, { Formato } from './Insignia';
 import VisorPDF, { esVisualizable } from './VisorPDF';
+import { ModalRechazo, ModalObservaciones, BotonObservaciones, NombreConMotivo } from './ObservacionesDocumento';
 import {
   IconoSubir, IconoDescargar, IconoOjo, IconoCheck, IconoCerrar,
   IconoArchivar, IconoBasura, IconoAlerta,
@@ -37,6 +38,8 @@ export default function DetalleDocumentos({ recurso }) {
   const [subiendo, setSubiendo] = useState(false);
   const [ocupado, setOcupado] = useState(null);   // id del documento en proceso
   const [docVisor, setDocVisor] = useState(null);
+  const [rechazo, setRechazo] = useState(null);   // documento que se va a rechazar
+  const [verObs, setVerObs] = useState(null);     // documento con el historial abierto
 
   const { filtros, setFiltro, limpiar, hayFiltros, clave } = useFiltrosURL(FILTROS_BASE);
 
@@ -105,21 +108,37 @@ export default function DetalleDocumentos({ recurso }) {
     }
   }
 
-  /* Cambiar el estado es reversible desde esta misma tabla: no se confirma. */
+  async function guardarEstado(doc, estado, observacion) {
+    const { data } = await api.patch(`${recurso.base}/documentos/${doc.id}/estado`, {
+      estado,
+      ...(observacion ? { observacion } : {}),
+    });
+    actualizarDocs(prev => prev.map(d => (
+      d.id === data.id ? { ...d, estado: data.estado, observaciones: data.observaciones } : d
+    )));
+    invalidarPendientes();
+    toast(estado === 'aprobado' ? 'Documento aprobado'
+      : estado === 'desaprobado' ? 'Documento rechazado'
+      : 'Documento devuelto a revisión');
+  }
+
+  /* Aprobar y devolver a revisión son reversibles desde esta misma tabla:
+     no se confirman. Rechazar pide el motivo (ModalRechazo). */
   async function cambiarEstado(doc, estado) {
     setOcupado(doc.id);
     try {
-      const { data } = await api.patch(`${recurso.base}/documentos/${doc.id}/estado`, { estado });
-      actualizarDocs(prev => prev.map(d => (d.id === data.id ? { ...d, estado: data.estado } : d)));
-      invalidarPendientes();
-      toast(estado === 'aprobado' ? 'Documento aprobado'
-        : estado === 'desaprobado' ? 'Documento rechazado'
-        : 'Documento devuelto a revisión');
+      await guardarEstado(doc, estado);
     } catch {
       await avisoError('No se pudo actualizar el estado del documento.');
     } finally {
       setOcupado(null);
     }
+  }
+
+  // Si falla, ModalRechazo muestra el error y sigue abierto.
+  async function rechazar(motivo) {
+    await guardarEstado(rechazo, 'desaprobado', motivo);
+    setRechazo(null);
   }
 
   /* Archivar y eliminar sacan el documento de aquí: ambas se confirman. */
@@ -175,7 +194,7 @@ export default function DetalleDocumentos({ recurso }) {
       render: d => (
         <span className={styles.archivo}>
           <Formato mime={d.tipo_mime} />
-          <span className="texto-cortado" title={d.nombre_original}>{d.nombre_original}</span>
+          <NombreConMotivo doc={d} />
         </span>
       ),
     },
@@ -183,7 +202,12 @@ export default function DetalleDocumentos({ recurso }) {
       clave: 'estado',
       titulo: 'Estado',
       orden: d => d.estado,
-      render: d => <Insignia estado={d.estado} />,
+      render: d => (
+        <>
+          <Insignia estado={d.estado} />
+          <BotonObservaciones doc={d} onAbrir={setVerObs} />
+        </>
+      ),
     },
     {
       clave: 'creado_en',
@@ -229,7 +253,7 @@ export default function DetalleDocumentos({ recurso }) {
             {d.estado !== 'desaprobado' && (
               <button
                 type="button" className="btn-icono tono-error"
-                onClick={() => cambiarEstado(d, 'desaprobado')}
+                onClick={() => setRechazo(d)}
                 title="Rechazar" aria-label={`Rechazar ${d.nombre_original}`} disabled={bloqueado}
               >
                 <IconoCerrar />
@@ -334,6 +358,12 @@ export default function DetalleDocumentos({ recurso }) {
           onCerrar={() => setDocVisor(null)}
         />
       )}
+
+      {rechazo && (
+        <ModalRechazo doc={rechazo} onConfirmar={rechazar} onCerrar={() => setRechazo(null)} />
+      )}
+
+      {verObs && <ModalObservaciones doc={verObs} onCerrar={() => setVerObs(null)} />}
     </Layout>
   );
 }

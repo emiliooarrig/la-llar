@@ -247,6 +247,8 @@ textarea.control { resize: vertical; min-height: 72px; }
   z-index: 200;
   overflow-y: auto;
 }
+/* Un modal abierto desde el visor de PDF (z-index 1200) tiene que quedar encima. */
+.overlay--encima { z-index: 1300; }
 .modal {
   width: 100%;
   max-width: 520px;

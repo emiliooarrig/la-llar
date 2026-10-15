@@ -5,6 +5,7 @@ import Layout from '../components/Layout';
 import EstadoDato from '../components/EstadoDato';
 import Insignia, { Formato } from '../components/Insignia';
 import VisorPDF, { esVisualizable } from '../components/VisorPDF';
+import { ModalRechazo } from '../components/ObservacionesDocumento';
 import { IconoProveedores, IconoUnidades, IconoDescargar, IconoCheck, IconoCerrar, IconoOjo } from '../components/Iconos';
 import { formatFecha, diasDesde, plural } from '../lib/formato';
 import { descargarArchivo } from '../lib/descargas';
@@ -28,6 +29,9 @@ export default function Pendientes() {
   // descargarlo: se abre aquí mismo y se decide desde la barra del visor.
   const [visor, setVisor] = useState(null);
   const cerrarVisor = useCallback(() => setVisor(null), []);
+  // Rechazo en curso: { doc, desdeVisor }. Desde el visor, al confirmar se
+  // pasa al siguiente PDF de la cola.
+  const [rechazo, setRechazo] = useState(null);
 
   const filtroTipo = params.get('tipo');
 
@@ -57,23 +61,31 @@ export default function Pendientes() {
     setParams(siguiente, { replace: true });
   }
 
-  /* Aprobar y rechazar no piden confirmación: ambas son reversibles desde
-     el detalle del proveedor o de la unidad. Pedir un "¿seguro?" por cada
-     documento convertía una bandeja de veinte en sesenta clics. */
-  async function resolver(doc, estado) {
+  async function guardar(doc, estado, observacion) {
     const meta = TIPO_META[doc.tipo];
+    await api.patch(`${meta.base}/${doc.doc_id}/estado`, {
+      estado,
+      ...(observacion ? { observacion } : {}),
+    });
+    setDatos(prev => ({
+      ...prev,
+      total: prev.total - 1,
+      proveedores: prev.proveedores - (doc.tipo === 'proveedor' ? 1 : 0),
+      unidades: prev.unidades - (doc.tipo === 'unidad' ? 1 : 0),
+      documentos: prev.documentos.filter(d => d.key !== doc.key),
+    }));
+    invalidarPendientes();
+    toast(estado === 'aprobado' ? 'Documento aprobado' : 'Documento rechazado');
+  }
+
+  /* Aprobar no pide confirmación: es reversible desde el detalle del
+     proveedor o de la unidad, y un "¿seguro?" por documento convertía una
+     bandeja de veinte en sesenta clics. Rechazar sí pide el motivo
+     (ModalRechazo): quien subió el documento lo lee para saber qué corregir. */
+  async function resolver(doc, estado) {
     setProcesando(doc.key);
     try {
-      await api.patch(`${meta.base}/${doc.doc_id}/estado`, { estado });
-      setDatos(prev => ({
-        ...prev,
-        total: prev.total - 1,
-        proveedores: prev.proveedores - (doc.tipo === 'proveedor' ? 1 : 0),
-        unidades: prev.unidades - (doc.tipo === 'unidad' ? 1 : 0),
-        documentos: prev.documentos.filter(d => d.key !== doc.key),
-      }));
-      invalidarPendientes();
-      toast(estado === 'aprobado' ? 'Documento aprobado' : 'Documento rechazado');
+      await guardar(doc, estado);
       return true;
     } catch {
       await avisoError('No se pudo actualizar el documento. Vuelve a intentarlo.');
@@ -95,11 +107,23 @@ export default function Pendientes() {
   /* Decidir desde el visor y pasar al siguiente PDF de la cola, que es como
      se revisa una bandeja: uno tras otro sin volver a la lista. Si no quedan
      PDF después de este, el visor se cierra. */
-  async function resolverDesdeVisor(estado) {
-    const actual = visor;
+  function siguienteEnCola(doc) {
     const cola = documentos.filter(esVisualizable);
-    const siguiente = cola[cola.findIndex(d => d.key === actual.key) + 1] ?? null;
-    if (await resolver(actual, estado)) setVisor(siguiente);
+    return cola[cola.findIndex(d => d.key === doc.key) + 1] ?? null;
+  }
+
+  async function aprobarDesdeVisor() {
+    const siguiente = siguienteEnCola(visor);
+    if (await resolver(visor, 'aprobado')) setVisor(siguiente);
+  }
+
+  // Si falla, ModalRechazo muestra el error y sigue abierto.
+  async function rechazar(motivo) {
+    const { doc, desdeVisor } = rechazo;
+    const siguiente = desdeVisor ? siguienteEnCola(doc) : null;
+    await guardar(doc, 'desaprobado', motivo);
+    setRechazo(null);
+    if (desdeVisor) setVisor(siguiente);
   }
 
   return (
@@ -203,7 +227,7 @@ export default function Pendientes() {
                   </button>
                   <button
                     type="button" className="btn btn--sm btn--peligro"
-                    onClick={() => resolver(doc, 'desaprobado')} disabled={ocupado}
+                    onClick={() => setRechazo({ doc, desdeVisor: false })} disabled={ocupado}
                   >
                     <IconoCerrar tamano={14} /> Rechazar
                   </button>
@@ -232,18 +256,27 @@ export default function Pendientes() {
               </span>
               <button
                 type="button" className="btn btn--sm btn--peligro"
-                onClick={() => resolverDesdeVisor('desaprobado')} disabled={procesando === visor.key}
+                onClick={() => setRechazo({ doc: visor, desdeVisor: true })} disabled={procesando === visor.key}
               >
                 <IconoCerrar tamano={14} /> Rechazar
               </button>
               <button
                 type="button" className="btn btn--sm btn--exito"
-                onClick={() => resolverDesdeVisor('aprobado')} disabled={procesando === visor.key}
+                onClick={aprobarDesdeVisor} disabled={procesando === visor.key}
               >
                 <IconoCheck tamano={14} /> Aprobar
               </button>
             </>
           }
+        />
+      )}
+
+      {rechazo && (
+        <ModalRechazo
+          doc={rechazo.doc}
+          encima={rechazo.desdeVisor}
+          onConfirmar={rechazar}
+          onCerrar={() => setRechazo(null)}
         />
       )}
     </Layout>

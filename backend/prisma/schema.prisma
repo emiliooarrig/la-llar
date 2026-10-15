@@ -273,7 +273,8 @@ model documentos_proveedor {
   estado          EstadoDocumento @default(pendiente)
   creado_en       DateTime        @default(now())
 
-  proveedor proveedores @relation(fields: [proveedor_id], references: [id])
+  proveedor     proveedores                   @relation(fields: [proveedor_id], references: [id])
+  observaciones observaciones_doc_proveedor[]
 }
 
 model documentos_unidad {
@@ -286,7 +287,40 @@ model documentos_unidad {
   estado          EstadoDocumento @default(pendiente)
   creado_en       DateTime        @default(now())
 
-  sucursal sucursales @relation(fields: [sucursal_id], references: [id])
+  sucursal      sucursales                 @relation(fields: [sucursal_id], references: [id])
+  observaciones observaciones_doc_unidad[]
+}
+
+// Observaciones de los documentos subidos por proveedores y por gerentes:
+// el mismo criterio que `observaciones_documento` en facturas. Rechazar
+// exige escribir el motivo, porque quien subió el archivo lo lee para saber
+// qué corregir, y el historial solo crece (no se edita ni se borra).
+//
+// Una tabla por tipo de documento para que cada fila tenga su llave foránea
+// real. Se borran en cascada con el documento: eliminarlo o mandarlo al
+// Histórico lo saca del flujo de revisión, y las notas eran sobre ese flujo.
+model observaciones_doc_proveedor {
+  id           Int      @id @default(autoincrement())
+  documento_id Int
+  texto        String   @db.VarChar(500)
+  autor_id     Int
+  creado_en    DateTime @default(now())
+
+  documento documentos_proveedor @relation(fields: [documento_id], references: [id], onDelete: Cascade)
+
+  @@index([documento_id])
+}
+
+model observaciones_doc_unidad {
+  id           Int      @id @default(autoincrement())
+  documento_id Int
+  texto        String   @db.VarChar(500)
+  autor_id     Int
+  creado_en    DateTime @default(now())
+
+  documento documentos_unidad @relation(fields: [documento_id], references: [id], onDelete: Cascade)
+
+  @@index([documento_id])
 }
 
 // Archivo histórico: documentos que el administrador saca del flujo activo
