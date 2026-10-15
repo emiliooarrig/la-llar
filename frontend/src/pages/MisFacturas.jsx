@@ -122,9 +122,20 @@ export default function MisFacturas() {
       toast(esComplemento ? 'Complemento enviado: queda en revisión' : 'Factura enviada: queda en revisión');
       await cargar();   // el bloqueo y las alertas cambian con la subida
     } catch (err) {
-      const mensaje = err.response?.data?.error || 'No se pudo enviar. Inténtalo de nuevo.';
-      /* El duplicado y el CFDI mal timbrado se anclan al campo del XML, que
-         es el archivo que hay que cambiar. */
+      const datos = err.response?.data;
+      const mensaje = datos?.error || 'No se pudo enviar. Inténtalo de nuevo.';
+
+      /* Factura ya registrada (mismo folio fiscal): alerta con la fecha en
+         que se subió y en qué quedó, que suele ser de un periodo pasado. El
+         XML se marca igual, porque es el archivo que hay que cambiar. */
+      if (datos?.codigo === 'factura_duplicada') {
+        setErrores({ xml: 'Esta factura ya está registrada. Elige otro XML.' });
+        await avisoError(mensaje, datos.duplicada ? 'Ya subiste esta factura' : 'Factura ya registrada');
+        return;
+      }
+
+      /* El CFDI mal timbrado se ancla al campo del XML, que es el archivo
+         que hay que cambiar. */
       if (/folio fiscal|XML|CFDI|timbrado/i.test(mensaje)) setErrores({ xml: mensaje });
       else if (/PDF/i.test(mensaje)) setErrores({ pdf: mensaje });
       else await avisoError(mensaje);

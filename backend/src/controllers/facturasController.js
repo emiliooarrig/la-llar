@@ -44,6 +44,50 @@ function serializarFactura(factura) {
   return { ...factura, total: factura.total != null ? factura.total.toFixed(2) : null };
 }
 
+/* ── Factura duplicada ────────────────────────────────────────────────
+ * El folio fiscal (UUID del timbre) es la clave: el SAT garantiza que no se
+ * repite, así que si ya está en la base, es la misma factura subida otra vez.
+ *
+ * Al proveedor se le dice CUÁNDO la subió y en qué quedó: casi siempre es
+ * una factura de un periodo pasado que se le volvió a colar en el lote, y
+ * con la fecha la reconoce sin llamar a nadie. Si el folio es de OTRO
+ * proveedor no se le da ningún dato de ella (no es suya); el administrador
+ * sí ve de quién es. */
+const ESTADO_DUPLICADA = { pendiente: 'en revisión', aprobado: 'aprobada', desaprobado: 'rechazada' };
+
+const fechaLarga = (fecha) => new Date(fecha).toLocaleDateString('es-MX', {
+  day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Mexico_City',
+});
+
+function respuestaDuplicada(existente, uuid, proveedorId, usuario) {
+  const base = { codigo: 'factura_duplicada', uuid_fiscal: uuid };
+
+  if (existente.proveedor_id !== proveedorId) {
+    return {
+      ...base,
+      duplicada: null,
+      error: usuario.rol === 'administrador'
+        ? `La factura con folio fiscal ${uuid} ya está registrada a nombre de ${existente.proveedor?.nombre ?? 'otro proveedor'}.`
+        : `La factura con folio fiscal ${uuid} ya está registrada en el sistema. Si crees que es un error, contacta al administrador.`,
+    };
+  }
+
+  const quien = usuario.rol === 'proveedor' ? 'Ya subiste' : 'Ya se subió';
+  const folio = existente.serie_folio ? ` (${existente.serie_folio})` : '';
+  return {
+    ...base,
+    duplicada: {
+      id: existente.id,
+      serie_folio: existente.serie_folio,
+      estado: existente.estado,
+      empresa: existente.empresa?.nombre ?? null,
+      subida_en: existente.creado_en,
+    },
+    error: `${quien} la factura con folio fiscal ${uuid}${folio} el ${fechaLarga(existente.creado_en)}, ` +
+      `y está ${ESTADO_DUPLICADA[existente.estado]}. Una factura no se puede registrar dos veces.`,
+  };
+}
+
 /* ── Alcance ──────────────────────────────────────────────────────────
  * Un proveedor solo existe para sí mismo. El id de la URL no decide nada:
  * quien manda es `req.usuario.proveedor_id`, que `verificarToken` lee de la
@@ -152,14 +196,15 @@ async function subirFactura(req, res) {
      * único que aguanta dos subidas simultáneas del mismo folio. */
     const yaExiste = await prisma.facturas.findUnique({
       where: { uuid_fiscal: cfdi.uuid },
-      select: { id: true, proveedor_id: true, creado_en: true },
+      select: {
+        id: true, proveedor_id: true, creado_en: true, estado: true, serie_folio: true,
+        empresa: { select: { nombre: true } },
+        proveedor: { select: { nombre: true } },
+      },
     });
     if (yaExiste) {
       await limpiar();
-      return res.status(409).json({
-        error: `La factura con folio fiscal ${cfdi.uuid} ya está registrada en el sistema.`,
-        uuid_fiscal: cfdi.uuid,
-      });
+      return res.status(409).json(respuestaDuplicada(yaExiste, cfdi.uuid, proveedorId, req.usuario));
     }
 
     const factura = await prisma.facturas.create({
@@ -189,7 +234,11 @@ async function subirFactura(req, res) {
     // Carrera perdida contra otra subida del mismo folio: el índice único la
     // corta aquí. Mismo mensaje que la comprobación previa.
     if (e.code === 'P2002') {
-      return res.status(409).json({ error: 'La factura con ese folio fiscal ya está registrada en el sistema.' });
+      return res.status(409).json({
+        codigo: 'factura_duplicada',
+        duplicada: null,
+        error: 'La factura con ese folio fiscal ya está registrada en el sistema.',
+      });
     }
     console.error('Error al subir factura:', e);
     res.status(500).json({ error: 'Error interno del servidor' });
